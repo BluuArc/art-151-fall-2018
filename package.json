@@ -1,0 +1,13 @@
+{
+  "name": "art-151-fall-2018",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "processing": ".\\processing-3.4\\processing-java.exe",
+    "run-sketch": "run-sketch.bat"
+  },
+  "author": "Joshua Castor",
+  "license": "ISC"
+}
