@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "processing": ".\\processing-3.4\\processing-java.exe",
-    "run-sketch": "run-sketch.bat"
+    "run-sketch": "run-sketch-auto.bat"
   },
   "author": "Joshua Castor",
   "license": "ISC"

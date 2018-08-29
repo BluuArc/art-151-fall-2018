@@ -9,5 +9,5 @@ Download [Processing 3.4](https://processing.org/download/) into the local direc
 The following command will run the `inClassDemo1` project in the root folder.
 
 ```
-npm run run-sketch -- --sketch="../inClassDemo1"
+npm run run-sketch -- inClassDemo1
 ```
