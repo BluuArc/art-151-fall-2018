@@ -6,6 +6,8 @@ String activeName;
 float toolbarBackgroundShade = 175;
 float toolbarY = 0;
 float maxBrushSize = 30;
+float taperedBrushSize = 0;
+color backgroundColor = color(255);
 
 class ToolbarIcon {
   private String name;
@@ -52,7 +54,8 @@ class ToolbarIcon {
 
 class Cursor {
   private float size = 5;
-  private color paintColor = color(255, 255, 255);
+  private float strokeWeight = 1;
+  private color paintColor = color(255/2);
 
   public Cursor () {}
 
@@ -62,19 +65,37 @@ class Cursor {
 
   void draw (float x, float y) {
     stroke(0);
-    strokeWeight(1);
+    fill(paintColor);
+    strokeWeight(strokeWeight);
     switch (activeName) {
+      case "bucket":
+        rectMode(CORNER);
+        stroke(paintColor);
+        strokeWeight(0);
+        rect(0, 0, width, toolbarY);
+        break;
+      case "brush":
+        ellipseMode(CENTER);
+        ellipse(x, y, size, size);
+        taperedBrushSize = size;
+        break;
+      case "eraser":
+        fill(backgroundColor);
+        strokeWeight(0);
+        stroke(backgroundColor);
       case "pencil":
       default :
         rectMode(CENTER);
-        fill(paintColor);
-        strokeWeight(1);
         rect(x, y, size, size);
     }
   }
 
   void setSize (float newValue) {
     this.size = newValue;
+  }
+
+  void setStrokeWeight (float weight) {
+    this.strokeWeight = weight;
   }
 }
 
@@ -98,10 +119,12 @@ class Slider {
   void draw (float inputX, float inputY) {
     this.x = inputX;
     this.y = inputY;
-    textSize(toolbarTextSize);
+    textSize(toolbarTextSize * 0.85);
     fill(0);
+    stroke(0);
+    strokeWeight(1);
     String label = this.name.concat(": ");
-    text(label.concat(String.valueOf(Math.round(this.getCurrentValue()))), this.x, this.y);
+    text(label.concat(String.valueOf(Math.round(this.getCurrentValue()))), this.x, this.y - (toolbarTextSize * 0.15));
     rectMode(CORNER);
     fill(255);
     rect(this.x, this.y, this.maxWidth, toolbarTextSize);
@@ -152,21 +175,29 @@ ToolbarIcon[] setupToolbarIcons (String[] iconInfo) {
   }
   return icons;
 }
-ToolbarIcon[] toolbarIcons = setupToolbarIcons(toolbarIconNames);
+ToolbarIcon[] toolbarIcons;
 
+Cursor cursor;
 Slider sizeSlider;
-Cursor cursor = new Cursor();
+Slider strokeWidthSlider;
 
 void setup () {
   size(1960, 1280);
-  background(255);
-  line(width / 2, 0, width / 2, height);
+  background(backgroundColor);
   iconSize = width * 0.1;
   activeName = toolbarIconNames[0];
   toolbarY = height - 2 * bottomOffset - iconSize;
   maxBrushSize = iconSize * 0.75;
   iconY = height - bottomOffset - iconSize;
+
+  toolbarIcons = setupToolbarIcons(toolbarIconNames);
+  cursor = new Cursor();
+
   sizeSlider = new Slider(1, iconSize * 0.75, iconSize, "Size");
+  sizeSlider.setCurrentValue(5);
+
+  strokeWidthSlider = new Slider(0, 50, iconSize, "Stroke");
+  strokeWidthSlider.setCurrentValue(1);
 }
 
 void drawIconBar () {
@@ -181,14 +212,25 @@ void drawIconBar () {
 void drawFpsIndicator () {
   textSize(toolbarTextSize);
   fill(0);
-  text(String.valueOf(Math.round(frameRate)).concat(" FPS"), iconSize * 1.25, toolbarY + toolbarTextSize);
+  text(String.valueOf(Math.round(frameRate)).concat(" FPS"), 0, height - bottomOffset);
 }
 
 void drawBrushPreview () {
   rectMode(CORNER);
   fill(255);
   rect(0, iconY, iconSize, iconSize);
-  cursor.draw(iconSize / 2, iconY + iconSize / 2);
+  if (activeName == "bucket") {
+    activeName = "pencil";
+    cursor.draw(iconSize / 2, iconY + iconSize / 2);
+    activeName = "bucket";
+  }else if (activeName != "brush") {
+    cursor.draw(iconSize / 2, iconY + iconSize / 2);
+  } else {
+    float oldTaper = taperedBrushSize;
+    cursor.setSize(sizeSlider.getCurrentValue());
+    cursor.draw(iconSize / 2, iconY + iconSize / 2);
+    taperedBrushSize = oldTaper;
+  }
 
   final float labelTextSize = toolbarTextSize * 0.75;
   textSize(labelTextSize);
@@ -197,25 +239,45 @@ void drawBrushPreview () {
 }
 
 void drawSliders () {
-  sizeSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize * 2);
+  sizeSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize);
+  strokeWidthSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize * 3);
 }
 
 void drawToolbar () {
+  stroke(0);
   strokeWeight(1);
   fill(toolbarBackgroundShade);
   rectMode(CORNER);
   rect(0, toolbarY, width, iconSize + 2 * bottomOffset);
-  drawFpsIndicator();
+
   drawBrushPreview();
+
+  stroke(0);
+  strokeWeight(1);
+  drawFpsIndicator();
   drawIconBar();
   drawSliders();
 }
 
+boolean mouseIsInToolbar () {
+  return mouseY >= toolbarY;
+}
+
 void draw () {
-  if (mousePressed) {
-    cursor.draw();
+  if (!mouseIsInToolbar()) {
+    if (mousePressed) {
+      cursor.draw();
+    } else if (activeName == "brush" && !mousePressed && taperedBrushSize > 0) {
+      cursor.setSize(taperedBrushSize);
+      cursor.draw();
+      taperedBrushSize -= taperedBrushSize * 0.25;
+      if (taperedBrushSize < 5) {
+        taperedBrushSize = 0; // prevent super small trailing dots
+      }
+    }
   }
   drawToolbar();
 
   cursor.setSize(sizeSlider.getCurrentValue());
+  cursor.setStrokeWeight(strokeWidthSlider.getCurrentValue());
 }
