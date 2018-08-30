@@ -1,4 +1,4 @@
-final float bottomOffset = height * 0.075;
+final float bottomOffset = 7.5;
 float iconSize = 10;
 float iconY = 0;
 final float toolbarTextSize = 32;
@@ -13,9 +13,15 @@ class ToolbarIcon {
   private String name;
   private float x = 0;
   private float y = 0;
+  private char shortcutKey;
 
   public ToolbarIcon (String inputName) {
+    this(inputName, inputName.charAt(0));
+  }
+
+  public ToolbarIcon (String inputName, char shortcut) {
     this.name = inputName;
+    this.shortcutKey = shortcut;
   }
 
   void draw () {
@@ -27,7 +33,8 @@ class ToolbarIcon {
 
     textSize(toolbarTextSize);
     fill(this.isActiveTool() ? (255 / 4) : 0);
-    text(this.name, this.x, this.y + toolbarTextSize);
+    String keyHint = " (" + String.valueOf(this.shortcutKey) + ")";
+    text(this.name.concat(keyHint), this.x, this.y + toolbarTextSize);
   }
 
   void draw (float inputX, float inputY) {
@@ -41,12 +48,16 @@ class ToolbarIcon {
       && (mouseY >= this.y && mouseY <= (this.y + iconSize));
   }
 
+  boolean shortcutKeyPressed () {
+    return keyPressed && key == this.shortcutKey;
+  }
+
   boolean isActiveTool () {
     return activeName == this.name;
   }
 
   void changeActiveTool () {
-    if (mousePressed && this.mouseIsInIcon()) {
+    if ((mousePressed && this.mouseIsInIcon()) || this.shortcutKeyPressed()) {
       activeName = this.name;
     }
   }
@@ -218,7 +229,11 @@ String[] toolbarIconNames = {"pencil", "brush", "bucket", "eraser"};
 ToolbarIcon[] setupToolbarIcons (String[] iconInfo) {
   ToolbarIcon[] icons = new ToolbarIcon[iconInfo.length];
   for (int i = 0; i < iconInfo.length; ++i) {
-    icons[i] = new ToolbarIcon(iconInfo[i]);
+    if (iconInfo[i] != "bucket") {
+      icons[i] = new ToolbarIcon(iconInfo[i]);
+    } else {
+      icons[i] = new ToolbarIcon(iconInfo[i], iconInfo[i].charAt(1));
+    }
   }
   return icons;
 }
