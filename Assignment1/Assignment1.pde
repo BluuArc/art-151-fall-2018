@@ -56,6 +56,7 @@ class Cursor {
   private float size = 5;
   private float strokeWeight = 1;
   private color paintColor = color(255/2);
+  private color strokeColor = color(0);
 
   public Cursor () {}
 
@@ -64,7 +65,7 @@ class Cursor {
   }
 
   void draw (float x, float y) {
-    stroke(0);
+    stroke(strokeColor);
     fill(paintColor);
     strokeWeight(strokeWeight);
     switch (activeName) {
@@ -100,6 +101,10 @@ class Cursor {
 
   void setColor (float red, float green, float blue, float alpha) {
     this.paintColor = color(red, green, blue, alpha);
+  }
+
+  void setStrokeColor (float red, float green, float blue, float alpha) {
+    this.strokeColor = color(red, green, blue, alpha);
   }
 }
 
@@ -223,6 +228,7 @@ Cursor cursor;
 Slider sizeSlider;
 Slider strokeWidthSlider;
 ColorSlider[] paintSliders = new ColorSlider[4];
+ColorSlider[] strokeColorSliders = new ColorSlider[4];
 
 void setup () {
   size(1960, 1280);
@@ -249,6 +255,15 @@ void setup () {
   paintSliders[2].setCurrentValue(50);
   paintSliders[3] = new ColorSlider(iconSize * 0.75, "Alpha", color(0));
   paintSliders[3].setCurrentValue(255);
+
+  strokeColorSliders[0] = new ColorSlider(iconSize * 0.75, "Red", color(255, 0, 0));
+  strokeColorSliders[0].setCurrentValue(0);
+  strokeColorSliders[1] = new ColorSlider(iconSize * 0.75, "Green", color(0, 255, 0));
+  strokeColorSliders[1].setCurrentValue(0);
+  strokeColorSliders[2] = new ColorSlider(iconSize * 0.75, "Blue", color(0, 0, 255));
+  strokeColorSliders[2].setCurrentValue(0);
+  strokeColorSliders[3] = new ColorSlider(iconSize * 0.75, "Alpha", color(0));
+  strokeColorSliders[3].setCurrentValue(255);
 }
 
 void drawIconBar () {
@@ -294,7 +309,7 @@ void drawSliders () {
   strokeWidthSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize * 3);
 
   final float iconbarEdge = width/2 + (toolbarIconNames.length * iconSize/2);
-  final float paintSlidersOffsetX = iconbarEdge + iconSize/4;
+  float paintSlidersOffsetX = iconbarEdge + iconSize/4;
   textSize(toolbarTextSize);
   fill(0);
   stroke(0);
@@ -302,6 +317,16 @@ void drawSliders () {
   text("Paint Color", paintSlidersOffsetX, toolbarY + toolbarTextSize);
   for (int i = 0; i < paintSliders.length; ++i) {
     paintSliders[i].draw(paintSlidersOffsetX, toolbarY + toolbarTextSize * (1.25 * (i + 1)));
+  }
+
+  paintSlidersOffsetX += iconSize * 1.25; // to the right of paint color selector
+  textSize(toolbarTextSize);
+  fill(0);
+  stroke(0);
+  strokeWeight(1);
+  text("Stroke Color", paintSlidersOffsetX, toolbarY + toolbarTextSize);
+  for (int i = 0; i < strokeColorSliders.length; ++i) {
+    strokeColorSliders[i].draw(paintSlidersOffsetX, toolbarY + toolbarTextSize * (1.25 * (i + 1)));
   }
 }
 
@@ -343,4 +368,5 @@ void draw () {
   cursor.setSize(sizeSlider.getCurrentValue());
   cursor.setStrokeWeight(strokeWidthSlider.getCurrentValue());
   cursor.setColor(paintSliders[0].getCurrentValue(), paintSliders[1].getCurrentValue(), paintSliders[2].getCurrentValue(), paintSliders[3].getCurrentValue());
+  cursor.setStrokeColor(strokeColorSliders[0].getCurrentValue(), strokeColorSliders[1].getCurrentValue(), strokeColorSliders[2].getCurrentValue(), strokeColorSliders[3].getCurrentValue());
 }
