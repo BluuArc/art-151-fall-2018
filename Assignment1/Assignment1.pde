@@ -97,16 +97,20 @@ class Cursor {
   void setStrokeWeight (float weight) {
     this.strokeWeight = weight;
   }
+
+  void setColor (float red, float green, float blue, float alpha) {
+    this.paintColor = color(red, green, blue, alpha);
+  }
 }
 
 class Slider {
-  private float maxValue = 100.0;
-  private float minValue = 0.0;
-  private float currentValue = 0.0;
-  private String name = "Slider";
-  private float maxWidth = 50;
-  private float x = 0;
-  private float y = 0;
+  protected float maxValue = 100.0;
+  protected float minValue = 0.0;
+  protected float currentValue = 0.0;
+  protected String name = "Slider";
+  protected float maxWidth = 50;
+  protected float x = 0;
+  protected float y = 0;
 
   public Slider (float min, float max, float width, String inputName) {
     this.minValue = min;
@@ -167,6 +171,44 @@ class Slider {
   }
 }
 
+class ColorSlider extends Slider {
+  private color barColor;
+
+  public ColorSlider (float width, String colorName, color inputColor) {
+    this(0, 255, width, colorName, inputColor);
+  }
+
+  public ColorSlider (float min, float max, float width, String colorName, color inputColor) {
+    super(min, max, width, colorName);
+    this.barColor = inputColor;
+  }
+
+  void draw (float inputX, float inputY) {
+    this.x = inputX;
+    this.y = inputY;
+    final float barHeight = toolbarTextSize * 0.75;
+    stroke(0);
+    strokeWeight(1);
+
+    rectMode(CORNER);
+    fill(255);
+    rect(this.x, this.y, this.maxWidth, barHeight);
+
+    fill(this.barColor);
+    float filledBarWidth = this.maxWidth * this.getCurrentRatio();
+    rect(this.x, this.y, filledBarWidth, barHeight);
+
+    textSize(barHeight);
+    fill(0);
+    String label = this.name.substring(0,1).concat(": ");
+    text(label.concat(String.valueOf(Math.round(this.getCurrentValue()))), this.x + filledBarWidth, this.y + barHeight);
+
+    if (mousePressed && this.mouseIsInSlider()) {
+      this.setValueBasedOnMouse();
+    }
+  }
+}
+
 String[] toolbarIconNames = {"pencil", "brush", "bucket", "eraser"};
 ToolbarIcon[] setupToolbarIcons (String[] iconInfo) {
   ToolbarIcon[] icons = new ToolbarIcon[iconInfo.length];
@@ -180,6 +222,7 @@ ToolbarIcon[] toolbarIcons;
 Cursor cursor;
 Slider sizeSlider;
 Slider strokeWidthSlider;
+ColorSlider[] paintSliders = new ColorSlider[4];
 
 void setup () {
   size(1960, 1280);
@@ -194,10 +237,18 @@ void setup () {
   cursor = new Cursor();
 
   sizeSlider = new Slider(1, iconSize * 0.75, iconSize, "Size");
-  sizeSlider.setCurrentValue(5);
-
+  sizeSlider.setCurrentValue(50);
   strokeWidthSlider = new Slider(0, 50, iconSize, "Stroke");
-  strokeWidthSlider.setCurrentValue(1);
+  strokeWidthSlider.setCurrentValue(0);
+
+  paintSliders[0] = new ColorSlider(iconSize * 0.75, "Red", color(255, 0, 0));
+  paintSliders[0].setCurrentValue(50);
+  paintSliders[1] = new ColorSlider(iconSize * 0.75, "Green", color(0, 255, 0));
+  paintSliders[1].setCurrentValue(50);
+  paintSliders[2] = new ColorSlider(iconSize * 0.75, "Blue", color(0, 0, 255));
+  paintSliders[2].setCurrentValue(50);
+  paintSliders[3] = new ColorSlider(iconSize * 0.75, "Alpha", color(0));
+  paintSliders[3].setCurrentValue(255);
 }
 
 void drawIconBar () {
@@ -223,7 +274,7 @@ void drawBrushPreview () {
     activeName = "pencil";
     cursor.draw(iconSize / 2, iconY + iconSize / 2);
     activeName = "bucket";
-  }else if (activeName != "brush") {
+  } else if (activeName != "brush") {
     cursor.draw(iconSize / 2, iconY + iconSize / 2);
   } else {
     float oldTaper = taperedBrushSize;
@@ -241,6 +292,17 @@ void drawBrushPreview () {
 void drawSliders () {
   sizeSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize);
   strokeWidthSlider.draw(iconSize * 1.25, toolbarY + toolbarTextSize * 3);
+
+  final float iconbarEdge = width/2 + (toolbarIconNames.length * iconSize/2);
+  final float paintSlidersOffsetX = iconbarEdge + iconSize/4;
+  textSize(toolbarTextSize);
+  fill(0);
+  stroke(0);
+  strokeWeight(1);
+  text("Paint Color", paintSlidersOffsetX, toolbarY + toolbarTextSize);
+  for (int i = 0; i < paintSliders.length; ++i) {
+    paintSliders[i].draw(paintSlidersOffsetX, toolbarY + toolbarTextSize * (1.25 * (i + 1)));
+  }
 }
 
 void drawToolbar () {
@@ -280,4 +342,5 @@ void draw () {
 
   cursor.setSize(sizeSlider.getCurrentValue());
   cursor.setStrokeWeight(strokeWidthSlider.getCurrentValue());
+  cursor.setColor(paintSliders[0].getCurrentValue(), paintSliders[1].getCurrentValue(), paintSliders[2].getCurrentValue(), paintSliders[3].getCurrentValue());
 }
