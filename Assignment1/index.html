@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>ART 151 Spring 2018: Assignment 1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/p5.js"></script>
+  <script>
+    function loadLocalP5() {
+      console.debug('attempting to load local p5');
+      const scriptElem = document.createElement('script');
+      scriptElem.src = "../processing-3.4/p5.min.js";
+      document.children[0].prepend(scriptElem);
+    }
+    if (typeof p5 === 'undefined') {
+      loadLocalP5();
+    }
+  </script>
+  <script src="main.js"></script>
+</head>
+<body>
+  
+</body>
+</html>
