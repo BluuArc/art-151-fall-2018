@@ -27,7 +27,8 @@ class Bubble {
   }
 
   private boolean mouseIsNear () {
-    return Math.abs(mouseX - this.x) < size * 1.5 && Math.abs(mouseY - this.y) < size * 1.5;
+    float range = size * 5;
+    return Math.abs(mouseX - this.x) < range && Math.abs(mouseY - this.y) < range;
   }
 
   private void updatePhysics () {
@@ -46,11 +47,11 @@ class Bubble {
     this.x += this.xSpeed;
     this.y += this.ySpeed;
 
-    if (mouseIsNear()) {
-      float xDiff = Math.abs(mouseX - this.x);
-      float yDiff = Math.abs(mouseY - this.y);
-      this.xSpeed += (mouseX < this.x) ? -xDiff : xDiff;
-      this.ySpeed += (mouseY < this.y) ? -yDiff : yDiff;
+    if (mouseIsNear() && mousePressed) {
+      float changeX = Math.max(this.xSpeed * 0.5, 1);
+      float changeY = Math.max(this.ySpeed * 0.5, 1);
+      this.xSpeed += (mouseX < this.x) ? -changeX : changeX;
+      this.ySpeed += (mouseY < this.y) ? -changeY : changeY;
     }
   }
 }
