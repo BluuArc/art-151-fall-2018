@@ -3,5 +3,10 @@
     "path": "Assignment1",
     "name": "Drawing Application",
     "desc": "Using a combination of variables, images, for loops, animations, conditional statements, text, color, etc. create a “Drawing Application” that uses keyboard and mouse user input. Must include at least one for loop and two conditional statement."
+  },
+  {
+    "path": "bubblesExample",
+    "name": "Bubbles Example",
+    "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
   }
 ]

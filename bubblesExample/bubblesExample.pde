@@ -16,22 +16,21 @@ class Bubble {
     this.ySpeed = inYSpeed;
   }
 
-  public void draw () {
+  public void draw (float range) {
     ellipseMode(CENTER);
     stroke(255);
     fill(0);
 
     ellipse(this.x, this.y, this.size, this.size);
 
-    updatePhysics();
+    updatePhysics(range);
   }
 
-  private boolean mouseIsNear () {
-    float range = size * 5;
+  private boolean mouseIsNear (float range) {
     return Math.abs(mouseX - this.x) < range && Math.abs(mouseY - this.y) < range;
   }
 
-  private void updatePhysics () {
+  private void updatePhysics (float range) {
     if (this.x >= width - size / 2) {
       this.xSpeed = -Math.abs(this.xSpeed);
     } else if (this.x <= size / 2) {
@@ -47,7 +46,7 @@ class Bubble {
     this.x += this.xSpeed;
     this.y += this.ySpeed;
 
-    if (mouseIsNear() && mousePressed) {
+    if (mouseIsNear(range) && mousePressed) {
       float changeX = Math.max(this.xSpeed * 0.5, 1);
       float changeY = Math.max(this.ySpeed * 0.5, 1);
       this.xSpeed += (mouseX < this.x) ? -changeX : changeX;
@@ -58,6 +57,7 @@ class Bubble {
 
 int numShapes = 100;
 Bubble[] bubbles = new Bubble[numShapes];
+float range = 50;
 
 void setup () {
   size(displayWidth, displayHeight);
@@ -72,7 +72,23 @@ void setup () {
 
 void draw () {
   background(0);
+
+  fill(random(255), 255/2);
+  noStroke();
+  if (mousePressed) {
+    ellipse(mouseX, mouseY, range, range);
+  }
+  if (mousePressed) {
+    range += Math.min(range * 1.01, 10);
+  } else if (range < 50) {
+    range = 50;
+  } else {
+    range -= Math.max(range * 0.1, 1);
+  }
+
+  range = Math.min(range, height / 2);
+
   for (int i = 0; i < numShapes; ++i) {
-    bubbles[i].draw();
+    bubbles[i].draw(range);
   }
 }
