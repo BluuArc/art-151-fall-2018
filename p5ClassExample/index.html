@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>ART 151 Spring 2018: Class Example for Using P5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.dom.js"></script>
+  <script>
+    function appendScript (url) {
+      const scriptElem = document.createElement('script');
+      scriptElem.src = url;
+      document.children[0].prepend(scriptElem);
+    }
+    function loadLocalP5 () {
+      console.debug('attempting to load local p5');
+      appendScript('../processing-3.4/p5.min.js')
+      appendScript('../processing-3.4/p5-addons/p5.dom.min.js')
+    }
+    if (typeof p5 === 'undefined') {
+      loadLocalP5();
+    }
+  </script>
+  <script src="sketch.js"></script>
+</head>
+<body>
+  <script>
+    console.debug('Source code has an example of an async loader for a p5 instance.');
+    const waitStart = new Date();
+    function waitForP5 () {
+      if (typeof p5 !== 'undefined') {
+        return Promise.resolve();
+      } else if ((new Date() - waitStart) < (5 * 1000)) { // wait at most 5 seconds
+        return new Promise((resolve, reject) => {
+          requestAnimationFrame(() => waitForP5().then(resolve));
+        });
+      } else {
+        return Promise.reject('No p5 library found')
+      }
+    }
+
+    let app;
+    waitForP5().then(() => {
+      console.debug('p5 loaded');
+      app = new p5(App);
+    });
+  </script>
+</body>
+</html>

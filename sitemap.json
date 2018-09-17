@@ -8,5 +8,10 @@
     "path": "bubblesExample",
     "name": "Bubbles Example",
     "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
+  },
+  {
+    "path": "p5ClassExample",
+    "name": "Class Example for using P5",
+    "desc": "Small example of using p5.js. This is also an example of using the instance mode for p5.js."
   }
 ]

@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 function isSiteDirectory (path) {
-  const hasPde = (files = []) => files.some(name => name.endsWith('.pde'));
+  // const hasPde = (files = []) => files.some(name => name.endsWith('.pde'));
   const hasIndex = (files = []) => files.includes('index.html');
   try {
     const stats = fs.statSync(path);
@@ -9,7 +9,7 @@ function isSiteDirectory (path) {
       throw Error('Not a directory');
     }
     const pathFiles = fs.readdirSync(path);
-    return hasPde(pathFiles) && hasIndex(pathFiles);
+    return /* hasPde(pathFiles) && */ hasIndex(pathFiles);
   } catch (err) {
     return false;
   }
