@@ -104,4 +104,19 @@ class Maze {
       return null;
     }
   }
+
+  getChestContents () {
+    const rngValue = Math.random();
+    if (rngValue < 0.25) {
+      return 'food';
+    } else if (rngValue < 0.5) {
+      return 'sword';
+    } else {
+      return null;
+    }
+  }
+
+  removeChest (room) {
+    this._chestRooms = this._chestRooms.filter(val => val !== room);
+  }
 }
