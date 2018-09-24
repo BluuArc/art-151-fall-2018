@@ -10,8 +10,18 @@
     "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
   },
   {
+    "path": "narrativeClassExample",
+    "name": "Class Example for using P5 to Make a Narrative",
+    "desc": "Example from class for using P5 to create a narrative."
+  },
+  {
     "path": "p5ClassExample",
     "name": "Class Example for using P5",
     "desc": "Small example of using p5.js. This is also an example of using the instance mode for p5.js."
+  },
+  {
+    "path": "p5DomClassExample",
+    "name": "Class Example for using P5 DOM Library",
+    "desc": "Small example of using the p5 DOM library This is also an example of using p5 loader for loading p5 and its libraries."
   }
 ]
