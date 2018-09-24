@@ -50,9 +50,9 @@ class Maze {
     this._pitRooms.push(this.generateRandomPosition(filledRooms.concat([this._pitRooms[0]])));
     filledRooms = filledRooms.concat(this._pitRooms);
 
-    this._chestRooms.push(this.generateRandomPosition(filledRooms));
-    this._chestRooms.push(this.generateRandomPosition(filledRooms.concat([this._chestRooms[0]])));
-    filledRooms = filledRooms.concat(this._chestRooms);
+    for (let i = 0; i < 5; ++i) {
+      this.addChest();
+    }
 
     for (let i = 0; i < 5; ++i) {
       this._trapRooms.push(this.generateRandomPosition(filledRooms.concat(this._trapRooms)));
@@ -118,5 +118,17 @@ class Maze {
 
   removeChest (room) {
     this._chestRooms = this._chestRooms.filter(val => val !== room);
+  }
+
+  get numChests () {
+    return this._chestRooms.length;
+  }
+
+  addChest () {
+    this._chestRooms.push(this.generateRandomPosition(this._chestRooms.concat(this._trapRooms, this._pitRooms)));
+  }
+
+  removeWumpus () {
+    this._wumpusRoom = 0;
   }
 }

@@ -6,8 +6,9 @@ function App (_p5) {
     currentTurn: 0,
     energyRemaining: 16,
     inventory: {
-      hasFood: false,
+      food: 0,
       hasSword: false,
+      hasWumpus: false,
     },
   };
 
@@ -17,7 +18,7 @@ function App (_p5) {
     actionButtons: {
       goToRoom: _p5.createButton('Go to Another Room'),
       fight: _p5.createButton('Fight'),
-      run: _p5.createCanvas('button', 'Run Away'),
+      run: _p5.createButton('Run Away'),
       pet: _p5.createButton('Pet'),
       feed: _p5.createButton('Feed'),
       reset: _p5.createButton('Start Over'),
@@ -25,6 +26,7 @@ function App (_p5) {
       end: _p5.createButton('Ascend up the stairs'),
       chest: _p5.createButton('Open the chest'),
       other: _p5.createButton('Do something else'),
+      eatFood: _p5.createButton('Eat the food'),
     },
     roomButtons: {
       r1: _p5.createButton('Room 1'),
@@ -95,10 +97,84 @@ function App (_p5) {
       });
       uiElements.canvas.show();
     },
+    drawRoomButtons () {
+      uiElements.actionButtons.goToRoom.mousePressed(() => {
+        resetButtons(['actionButtons']);
+        setRoomButtons(gameState.currentRoom.surroundingRooms, () => {
+          resetButtons();
+          this.drawRoomButtons();
+        });
+        uiElements.canvas.show();
+      });
+
+      // stairs button
+      if (gameState.currentRoom.hasEnd) {
+        uiElements.actionButtons.end.mousePressed(() => {
+          scenes.gameOver('You ascend the stairs and successfully escape The Maze.');
+        });
+        uiElements.actionButtons.end.show();
+      }
+
+      // chest button
+      if (gameState.currentRoom.hasChest) {
+        uiElements.actionButtons.chest.mousePressed(() => {
+          resetButtons();
+          gameState.maze.removeChest(gameState.currentRoom.currentRoom);
+          const contents = gameState.maze.getChestContents();
+          if (contents === 'food') {
+            uiElements.roomDescription.html('You found some food.');
+            gameState.inventory.food++;
+          } else if (contents === 'sword') {
+            uiElements.roomDescription.html('You found a sword.');
+            gameState.inventory.hasSword = true;
+          } else {
+            uiElements.roomDescription.html('The chest is empty.');
+          }
+          uiElements.roomDescription.show();
+          uiElements.actionButtons.continue.mousePressed(() => scenes.drawRoom());
+          uiElements.actionButtons.continue.show();
+          uiElements.canvas.show();
+        });
+        uiElements.actionButtons.chest.show();
+      }
+
+      // trap related button(s)
+      if (gameState.currentRoom.trapContents) {
+        if (gameState.currentRoom.trapContents === 'trapStairs') {
+          uiElements.actionButtons.end.mousePressed(() => {
+            scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.');
+          });
+          uiElements.actionButtons.end.show();
+        } else if (gameState.currentRoom.trapContents === 'mimic') {
+          uiElements.actionButtons.chest.mousePressed(() => {
+            scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
+          });
+          uiElements.actionButtons.chest.show();
+        }
+      }
+
+      if (gameState.inventory.food > 0) {
+        uiElements.actionButtons.eatFood.mousePressed(() => {
+          gameState.inventory.food--;
+          gameState.energyRemaining += 10;
+          uiElements.roomDescription.html('You ate the food and gained some stamina');
+          uiElements.actionButtons.continue.mousePressed(() => scenes.drawRoom());
+          uiElements.actionButtons.continue.show();
+          uiElements.canvas.show();
+        });
+        uiElements.actionButtons.eatFood.show();
+      }
+
+      uiElements.actionButtons.goToRoom.show();
+      uiElements.canvas.show();
+    },
     drawRoom () {
       gameState.currentRoom = gameState.maze.getRoomInfo(gameState.currentRoom.currentRoom);
       gameState.currentTurn++;
       gameState.energyRemaining--;
+      if (gameState.currentTurn % 5 === 0 && gameState.maze.numChests < 5) {
+        gameState.maze.addChest();
+      }
       resetButtons();
       const roomDescriptionText = [
         gameState.currentTurn !== 1 ? 'You walk into the next room.' : 'You wake up in a room and see three different hallways branching from your current room.',
@@ -110,71 +186,12 @@ function App (_p5) {
       uiElements.roomDescription.html(roomDescriptionText.join('<br>'));
       uiElements.roomDescription.show();
 
-      const showRoomButtons = () => {
-        uiElements.actionButtons.goToRoom.mousePressed(() => {
-          resetButtons(['actionButtons']);
-          setRoomButtons(gameState.currentRoom.surroundingRooms, () => {
-            resetButtons();
-            showRoomButtons();
-          });
-          uiElements.canvas.show();
-        });
-
-        // stairs button
-        if (gameState.currentRoom.hasEnd) {
-          uiElements.actionButtons.end.mousePressed(() => {
-            scenes.gameOver('You ascend the stairs and successfully escape The Maze.');
-          });
-          uiElements.actionButtons.end.show();
-        }
-
-        // chest button
-        if (gameState.currentRoom.hasChest) {
-          uiElements.actionButtons.chest.mousePressed(() => {
-            resetButtons();
-            gameState.maze.removeChest(gameState.currentRoom.currentRoom);
-            const contents = gameState.maze.getChestContents();
-            if (contents === 'food') {
-              uiElements.roomDescription.html('You found some food.');
-              gameState.inventory.hasFood = true;
-            } else if (contents === 'sword') {
-              uiElements.roomDescription.html('You found a sword.');
-              gameState.inventory.hasSword = true;
-            } else {
-              uiElements.roomDescription.html('The chest is empty.');
-            }
-            uiElements.roomDescription.show();
-            uiElements.actionButtons.continue.mousePressed(() => scenes.drawRoom());
-            uiElements.actionButtons.continue.show();
-            uiElements.canvas.show();
-          });
-          uiElements.actionButtons.chest.show();
-        }
-
-        // trap related button(s)
-        if (gameState.currentRoom.trapContents) {
-          if (gameState.currentRoom.trapContents === 'trapStairs') {
-            uiElements.actionButtons.end.mousePressed(() => {
-              scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.');
-            });
-            uiElements.actionButtons.end.show();
-          } else if (gameState.currentRoom.trapContents === 'mimic') {
-            uiElements.actionButtons.chest.mousePressed(() => {
-              scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
-            });
-            uiElements.actionButtons.chest.show();
-          }
-        }
-
-        uiElements.actionButtons.goToRoom.show();
-        uiElements.canvas.show();
-      }
       if (gameState.currentRoom.hasPit) {
         scenes.gameOver('You fell into a pit and died.');
       } else if (gameState.energyRemaining === 0) {
         scenes.gameOver('You ran out of stamina and fainted.');
       } else {
-        showRoomButtons();
+        this.drawRoomButtons();
       }
       uiElements.canvas.show();
       console.debug(gameState.currentRoom);
