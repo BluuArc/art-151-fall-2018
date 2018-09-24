@@ -12,61 +12,50 @@ function App (_p5) {
     },
   };
 
+  const commonStrings = {
+    ASCEND_STAIRS: 'Ascend up the stairs',
+    OPEN_CHEST: 'Open the chest',
+    CONTINUE: 'Continue',
+  };
+
   const uiElements = {
     canvas: null,
     roomDescription: _p5.createElement('h2', 'room description'),
-    actionButtons: {
-      goToRoom: _p5.createButton('Go to Another Room'),
-      fight: _p5.createButton('Fight'),
-      run: _p5.createButton('Run Away'),
-      pet: _p5.createButton('Pet'),
-      feed: _p5.createButton('Feed'),
-      reset: _p5.createButton('Start Over'),
-      continue: _p5.createButton('Continue'),
-      end: _p5.createButton('Ascend up the stairs'),
-      chest: _p5.createButton('Open the chest'),
-      other: _p5.createButton('Do something else'),
-      eatFood: _p5.createButton('Eat the food'),
-    },
-    roomButtons: {
-      r1: _p5.createButton('Room 1'),
-      r2: _p5.createButton('Room 2'),
-      r3: _p5.createButton('Room 3'),
-    },
+    availableButtons: [],
   };
 
-  function resetButtons (buttonSets = ['actionButtons', 'roomButtons']) {
-    const resetButton = (button) => {
-      if (!button._pInst) {
+  function drawButtons (data = [{ label: 'example label', action: () => {} }]) {
+    data.forEach(({ label, action }, index) => {
+      let button = uiElements.availableButtons[index];
+      if (!button) {
+        button = _p5.createButton('button');
         button._pInst = _p5;
+        uiElements.availableButtons.push(button);
       }
-      button.mousePressed(false);
-      button.hide();
-    }
-    buttonSets.forEach(set => {
-      if (uiElements[set]) {
-        Object.keys(uiElements[set]).forEach(buttonKey => {
-          const button = uiElements[set][buttonKey];
-          resetButton(button);
-        });
-      }
-    });
-  }
-
-  function setRoomButtons (rooms = [], otherAction) {
-    Object.keys(uiElements.roomButtons).filter(key => key !== 'other').forEach((key, index) => {
-      const button = uiElements.roomButtons[key];
-      const nextRoom = rooms[index];
-      button.html(`Go to room ${nextRoom}`);
-      button.mousePressed(() => {
-        gameState.currentRoom = gameState.maze.getRoomInfo(nextRoom);
-        scenes.drawRoom();
-      });
+      button.html(label);
+      button.mousePressed(action);
       button.show();
     });
 
-    uiElements.actionButtons.other.mousePressed(otherAction);
-    uiElements.actionButtons.other.show();
+    // hide other buttons
+    uiElements.availableButtons.slice(data.length).forEach(button => {
+      button.hide();
+    });
+  }
+
+  function getRoomButtonConfig (rooms = [], otherAction) {
+    return [{
+      label: 'Do something else',
+      action: otherAction,
+    }].concat(
+      rooms.map(nextRoom => ({
+        label: `Go to room ${nextRoom}`,
+        action() {
+          gameState.currentRoom = gameState.maze.getRoomInfo(nextRoom);
+          scenes.drawRoom();
+        }
+      }))
+    );
   }
 
   const scenes = {
@@ -74,8 +63,8 @@ function App (_p5) {
       gameState.currentRoom = null;
       gameState.currentTurn = 0;
       gameState.energyRemaining = 16;
-      resetButtons();
       uiElements.roomDescription.hide();
+      uiElements.availableButtons = uiElements.availableButtons.map(button => button.remove()).filter(() => false);
       const instructionTitle = _p5.createElement('h1', 'The Maze');
       const instructionText = _p5.createElement('p');
       const instructions = [
@@ -85,97 +74,110 @@ function App (_p5) {
       ].join(' ');
       instructionText.html(instructions);
 
-      const startButton = _p5.createButton('Begin');
-      startButton.mouseClicked(() => {
-        instructionTitle.remove();
-        instructionText.remove();
-        startButton.remove();
-
-        gameState.maze = new Maze();
-        gameState.currentRoom = gameState.maze.getStartRoom();
-        this.drawRoom();
-      });
+      drawButtons([
+        {
+          label: 'Begin your escape',
+          action () {
+            instructionTitle.remove();
+            instructionText.remove();
+            gameState.maze = new Maze();
+            gameState.currentRoom = gameState.maze.getStartRoom();
+            scenes.drawRoom();
+          },
+        }
+      ])
       uiElements.canvas.show();
     },
     drawRoomButtons () {
-      uiElements.actionButtons.goToRoom.mousePressed(() => {
-        resetButtons(['actionButtons']);
-        setRoomButtons(gameState.currentRoom.surroundingRooms, () => {
-          resetButtons();
-          this.drawRoomButtons();
-        });
-        uiElements.canvas.show();
-      });
+      const availableActions = [
+        {
+          label: 'Go to another room',
+          action () {
+            const roomConfig = getRoomButtonConfig(gameState.currentRoom.surroundingRooms, scenes.drawRoomButtons);
+            drawButtons(roomConfig);
+            uiElements.canvas.show();
+          }
+        }
+      ];
 
       // stairs button
       if (gameState.currentRoom.hasEnd) {
-        uiElements.actionButtons.end.mousePressed(() => {
-          scenes.gameOver('You ascend the stairs and successfully escape The Maze.');
+        availableActions.push({
+          label: commonStrings.ASCEND_STAIRS,
+          action () {
+            scenes.gameOver('You ascend the stairs and successfully escape The Maze.');
+          }
         });
-        uiElements.actionButtons.end.show();
       }
 
       // chest button
       if (gameState.currentRoom.hasChest) {
-        uiElements.actionButtons.chest.mousePressed(() => {
-          resetButtons();
-          gameState.maze.removeChest(gameState.currentRoom.currentRoom);
-          const contents = gameState.maze.getChestContents();
-          if (contents === 'food') {
-            uiElements.roomDescription.html('You found some food.');
-            gameState.inventory.food++;
-          } else if (contents === 'sword') {
-            uiElements.roomDescription.html('You found a sword.');
-            gameState.inventory.hasSword = true;
-          } else {
-            uiElements.roomDescription.html('The chest is empty.');
+        availableActions.push({
+          label: commonStrings.OPEN_CHEST,
+          action () {
+            gameState.maze.removeChest(gameState.currentRoom.currentRoom);
+            const contents = gameState.maze.getChestContents();
+            if (contents === 'food') {
+              uiElements.roomDescription.html('You found some food.');
+              gameState.inventory.food++;
+            } else if (contents === 'sword') {
+              uiElements.roomDescription.html('You found a sword.');
+              gameState.inventory.hasSword = true;
+            } else {
+              uiElements.roomDescription.html('The chest is empty.');
+            }
+            uiElements.roomDescription.show();
+            drawButtons([{
+              label: commonStrings.CONTINUE,
+              action: () => scenes.drawRoom(),
+            }]);
+            uiElements.canvas.show();
           }
-          uiElements.roomDescription.show();
-          uiElements.actionButtons.continue.mousePressed(() => scenes.drawRoom());
-          uiElements.actionButtons.continue.show();
-          uiElements.canvas.show();
         });
-        uiElements.actionButtons.chest.show();
       }
 
       // trap related button(s)
       if (gameState.currentRoom.trapContents) {
         if (gameState.currentRoom.trapContents === 'trapStairs') {
-          uiElements.actionButtons.end.mousePressed(() => {
-            scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.');
+          availableActions.push({
+            label: commonStrings.ASCEND_STAIRS,
+            action: () => scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.'),
           });
-          uiElements.actionButtons.end.show();
         } else if (gameState.currentRoom.trapContents === 'mimic') {
-          uiElements.actionButtons.chest.mousePressed(() => {
-            scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
+          availableActions.push({
+            label: commonStrings.OPEN_CHEST,
+            action: () => scenes.gameOver('You attempt to open the chest, but it stands up and eats you.'),
           });
-          uiElements.actionButtons.chest.show();
         }
       }
 
       if (gameState.inventory.food > 0) {
-        uiElements.actionButtons.eatFood.mousePressed(() => {
-          gameState.inventory.food--;
-          gameState.energyRemaining += 10;
-          uiElements.roomDescription.html('You ate the food and gained some stamina');
-          uiElements.actionButtons.continue.mousePressed(() => scenes.drawRoom());
-          uiElements.actionButtons.continue.show();
-          uiElements.canvas.show();
+        availableActions.push({
+          label: 'Eat the food',
+          action () {
+            gameState.inventory.food--;
+            gameState.energyRemaining += 10;
+            uiElements.roomDescription.html('You ate the food and gained some stamina');
+            drawButtons([{ label: commonStrings.CONTINUE, action: () => scenes.drawRoom() }]);
+            uiElements.canvas.show();
+          }
         });
-        uiElements.actionButtons.eatFood.show();
       }
-
-      uiElements.actionButtons.goToRoom.show();
+      drawButtons(availableActions);
       uiElements.canvas.show();
     },
     drawRoom () {
       gameState.currentRoom = gameState.maze.getRoomInfo(gameState.currentRoom.currentRoom);
       gameState.currentTurn++;
       gameState.energyRemaining--;
-      if (gameState.currentTurn % 5 === 0 && gameState.maze.numChests < 5) {
+      if (gameState.currentTurn % 5 === 0 && Math.random() < 0.5 && gameState.maze.numChests < 5) {
         gameState.maze.addChest();
       }
-      resetButtons();
+      if (gameState.currentTurn % 5 === 0 && Math.random() < 0.5 && gameState.mase.emptySpaces > 5) {
+        gameState.maze.addTrap();
+      }
+
+      // resetButtons();
       const roomDescriptionText = [
         gameState.currentTurn !== 1 ? 'You walk into the next room.' : 'You wake up in a room and see three different hallways branching from your current room.',
         `Next to each of the three hallways reads the numbers ${gameState.currentRoom.surroundingRooms.join(', ')}.`,
@@ -197,12 +199,13 @@ function App (_p5) {
       console.debug(gameState.currentRoom);
     },
     gameOver (reason = 'You died') {
-      resetButtons();
       uiElements.roomDescription.html(reason);
-      uiElements.actionButtons.reset.mousePressed(() => {
-        scenes.beginning();
-      });
-      uiElements.actionButtons.reset.show();
+      drawButtons([
+        {
+          label: 'Start Over',
+          action: () => scenes.beginning(),
+        }
+      ]);
       uiElements.canvas.show();
     },
   };

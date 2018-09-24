@@ -128,6 +128,15 @@ class Maze {
     this._chestRooms.push(this.generateRandomPosition(this._chestRooms.concat(this._trapRooms, this._pitRooms)));
   }
 
+  addTrap () {
+    const excludedRooms = this._chestRooms.concat([this._finishRoom], this._pitRooms, this._trapRooms);
+    this._trapRooms.push(this.generateRandomPosition(excludedRooms));
+  }
+
+  get emptySpaces () {
+    return Object.keys(this._map).length - (this._chestRooms.length + this._trapRooms.length + this._pitRooms.length);
+  }
+
   removeWumpus () {
     this._wumpusRoom = 0;
   }
