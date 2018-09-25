@@ -10,12 +10,16 @@ function App (_p5) {
       hasSword: false,
       hasWumpus: false,
     },
+    hasMoved: false,
   };
 
   const commonStrings = {
     ASCEND_STAIRS: 'Ascend up the stairs',
     OPEN_CHEST: 'Open the chest',
     CONTINUE: 'Continue',
+    WUMPUS_CHEST_FAIL: 'You attempt to open the chest, but the Wumpus charges at you and flattens you.',
+    WUMPUS_STAIRS_FAIL: 'You attempt to ascend the stairs, but the Wumpus doens\'t like being ignored and charges the stairway, collapsing it on top of you.',
+
   };
 
   const uiElements = {
@@ -43,6 +47,13 @@ function App (_p5) {
     });
   }
 
+  function drawContinueButton () {
+    drawButtons([{
+      label: commonStrings.CONTINUE,
+      action: () => scenes.drawRoom(),
+    }]);
+  }
+
   function getRoomButtonConfig (rooms = [], otherAction) {
     return [{
       label: 'Do something else',
@@ -52,6 +63,7 @@ function App (_p5) {
         label: `Go to room ${nextRoom}`,
         action() {
           gameState.currentRoom = gameState.maze.getRoomInfo(nextRoom);
+          gameState.hasMoved = true;
           scenes.drawRoom();
         }
       }))
@@ -63,6 +75,9 @@ function App (_p5) {
       gameState.currentRoom = null;
       gameState.currentTurn = 0;
       gameState.energyRemaining = 16;
+      gameState.inventory.food = 0;
+      gameState.inventory.hasWumpus = false;
+      gameState.inventory.hasSword = false;
       uiElements.roomDescription.hide();
       uiElements.availableButtons = uiElements.availableButtons.map(button => button.remove()).filter(() => false);
       const instructionTitle = _p5.createElement('h1', 'The Maze');
@@ -89,23 +104,72 @@ function App (_p5) {
       uiElements.canvas.show();
     },
     drawRoomButtons () {
-      const availableActions = [
-        {
+      const availableActions = [];
+
+      // room travel related Wumpus actions
+      if (gameState.currentRoom.hasWumpus) {
+        availableActions.push({
+          label: 'Run Away',
+          action () {
+            const canRunAway = !gameState.maze.doesWumpusAct();
+            if (canRunAway) {
+              const randomFloorIndex = Math.floor(Math.random() * 3);
+              gameState.currentRoom = gameState.maze.getRoomInfo(gameState.currentRoom.surroundingRooms[randomFloorIndex]);
+              gameState.maze.moveWumpus();
+              uiElements.roomDescription.html('You have successfully escaped the Wumpus.');
+              gameState.hasMoved = true;
+              drawContinueButton();
+            } else {
+              scenes.gameOver('You attempt to flee, but the Wumpus sees it as an attack and body slams you into the wall, killing you instantly.');
+            }
+          }
+        });
+      } else {
+        availableActions.push({
           label: 'Go to another room',
           action () {
             const roomConfig = getRoomButtonConfig(gameState.currentRoom.surroundingRooms, scenes.drawRoomButtons);
             drawButtons(roomConfig);
             uiElements.canvas.show();
           }
-        }
-      ];
+        });
+      }
+
+      // sword actions
+      if (gameState.inventory.hasSword && (gameState.currentRoom.hasWumpus || gameState.inventory.hasWumpus)) {
+        availableActions.push({
+          label: gameState.currentRoom.hasWumpus ? 'Fight the Wumpus' : 'Stab the Wumpus',
+          action() {
+            const winsFight = !gameState.maze.doesWumpusAct();
+            if (winsFight) {
+              gameState.maze.removeWumpus();
+              gameState.inventory.hasWumpus = false;
+              uiElements.roomDescription.html('You successfully slay the Wumpus.');
+              drawContinueButton();
+            } else {
+              scenes.gameOver('You attempt to stab the Wumpus, but you miss. In retaliation, the Wumpus pulls out its own sword and fatally stabs you.');
+            }
+          }
+        });
+      }
 
       // stairs button
       if (gameState.currentRoom.hasEnd) {
         availableActions.push({
           label: commonStrings.ASCEND_STAIRS,
           action () {
-            scenes.gameOver('You ascend the stairs and successfully escape The Maze.');
+            const canSafelyAscend = !gameState.currentRoom.hasWumpus || !gameState.maze.doesWumpusAct();
+            if (canSafelyAscend) {
+              const finishText = [
+                'You ascend the stairs and successfully escape The Maze.',
+                gameState.maze.hasWumpus && 'The beast still lives however.',
+                !gameState.maze.hasWumpus && gameState.inventory.hasWumpus && 'You have also made a new friend in the Wumpus.',
+                !gameState.maze.hasWumpus && !gameState.inventory.hasWumpus && 'The Wumpus no longer lives. It shall roam the maze no more... Right?',
+              ].filter(val => val).join('<br>');
+              scenes.gameOver(finishText);
+            } else {
+              scenes.gameOver(commonStrings.WUMPUS_STAIRS_FAIL);
+            }
           }
         });
       }
@@ -115,23 +179,24 @@ function App (_p5) {
         availableActions.push({
           label: commonStrings.OPEN_CHEST,
           action () {
-            gameState.maze.removeChest(gameState.currentRoom.currentRoom);
-            const contents = gameState.maze.getChestContents();
-            if (contents === 'food') {
-              uiElements.roomDescription.html('You found some food.');
-              gameState.inventory.food++;
-            } else if (contents === 'sword') {
-              uiElements.roomDescription.html('You found a sword.');
-              gameState.inventory.hasSword = true;
+            const canOpenChest = !gameState.currentRoom.hasWumpus || !gameState.maze.doesWumpusAct();
+            if (canOpenChest) {
+              gameState.maze.removeChest(gameState.currentRoom.currentRoom);
+              const contents = gameState.maze.getChestContents();
+              if (contents === 'food') {
+                uiElements.roomDescription.html('You found some food.');
+                gameState.inventory.food++;
+              } else if (contents === 'sword') {
+                uiElements.roomDescription.html('You found a sword.');
+                gameState.inventory.hasSword = true;
+              } else {
+                uiElements.roomDescription.html('The chest is empty.');
+              }
+              drawContinueButton();
+              uiElements.canvas.show();
             } else {
-              uiElements.roomDescription.html('The chest is empty.');
+              scenes.gameOver(commonStrings.WUMPUS_CHEST_FAIL);
             }
-            uiElements.roomDescription.show();
-            drawButtons([{
-              label: commonStrings.CONTINUE,
-              action: () => scenes.drawRoom(),
-            }]);
-            uiElements.canvas.show();
           }
         });
       }
@@ -146,7 +211,16 @@ function App (_p5) {
         } else if (gameState.currentRoom.trapContents === 'mimic') {
           availableActions.push({
             label: commonStrings.OPEN_CHEST,
-            action: () => scenes.gameOver('You attempt to open the chest, but it stands up and eats you.'),
+            action: () => {
+              const doesWumpusAct = gameState.inventory.hasWumpus && (gameState.maze.doesWumpusAct() || gameState.maze.doesWumpusAct());
+              if (doesWumpusAct) {
+                uiElements.roomDescription.html('You attempt to open the chest, but it stands up and tries to eat you. However, the Wumpus eats it instead, saving you.');
+                gameState.maze.removeTrap(gameState.currentRoom.currentRoom);
+                drawContinueButton();
+              } else {
+                scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
+              }
+            },
           });
         }
       }
@@ -158,10 +232,28 @@ function App (_p5) {
             gameState.inventory.food--;
             gameState.energyRemaining += 10;
             uiElements.roomDescription.html('You ate the food and gained some stamina');
-            drawButtons([{ label: commonStrings.CONTINUE, action: () => scenes.drawRoom() }]);
+            drawContinueButton();
             uiElements.canvas.show();
           }
         });
+        if (gameState.currentRoom.hasWumpus) {
+          availableActions.push({
+            label: 'Feed the Wumpus',
+            action () {
+              const doesSafelyFeed = !gameState.maze.doesWumpusAct();
+              if (doesSafelyFeed) {
+                uiElements.roomDescription.html('You feed the Wumpus. It seems happy and wants to follow you around.');
+                gameState.inventory.hasWumpus = true;
+                gameState.inventory.food--;
+                gameState.maze.removeWumpus();
+                drawButtons([{ label: commonStrings.CONTINUE, action: () => scenes.drawRoom() }]);
+                uiElements.canvas.show();
+              } else {
+                scenes.gameOver('You attempt to feed the Wumpus. It eats the food, your hand, your arm, and the rest of you.');
+              }
+            },
+          });
+        }
       }
       drawButtons(availableActions);
       uiElements.canvas.show();
@@ -173,14 +265,16 @@ function App (_p5) {
       if (gameState.currentTurn % 5 === 0 && Math.random() < 0.5 && gameState.maze.numChests < 5) {
         gameState.maze.addChest();
       }
-      if (gameState.currentTurn % 5 === 0 && Math.random() < 0.5 && gameState.mase.emptySpaces > 5) {
+      if (gameState.currentTurn % 5 === 0 && Math.random() < 0.5 && gameState.maze.emptySpaces > 5) {
         gameState.maze.addTrap();
       }
 
       // resetButtons();
       const roomDescriptionText = [
-        gameState.currentTurn !== 1 ? 'You walk into the next room.' : 'You wake up in a room and see three different hallways branching from your current room.',
+        gameState.currentTurn !== 1 ? (gameState.hasMoved && 'You arrive at the next room.') : 'You wake up in a room and see three different hallways branching from your current room.',
+        (gameState.currentRoom.hasPit && gameState.inventory.hasWumpus) && 'You almost fall into a pit, but the Wumpus stops you from falling.',
         `Next to each of the three hallways reads the numbers ${gameState.currentRoom.surroundingRooms.join(', ')}.`,
+        gameState.currentRoom.hasWumpus && 'You have found the beast known as the Wumpus. It stares at you.',
         (gameState.currentRoom.hasChest || gameState.currentRoom.trapContents === 'mimic') && 'There\'s a chest in the room.',
         (gameState.currentRoom.hasEnd || gameState.currentRoom.trapContents === 'trapStairs') && 'There are stairs in the middle of the room.',
         'What will you do?',
@@ -188,7 +282,7 @@ function App (_p5) {
       uiElements.roomDescription.html(roomDescriptionText.join('<br>'));
       uiElements.roomDescription.show();
 
-      if (gameState.currentRoom.hasPit) {
+      if (gameState.currentRoom.hasPit && !gameState.inventory.hasWumpus) {
         scenes.gameOver('You fell into a pit and died.');
       } else if (gameState.energyRemaining === 0) {
         scenes.gameOver('You ran out of stamina and fainted.');
@@ -197,6 +291,7 @@ function App (_p5) {
       }
       uiElements.canvas.show();
       console.debug(gameState.currentRoom);
+      gameState.hasMoved = false;
     },
     gameOver (reason = 'You died') {
       uiElements.roomDescription.html(reason);
