@@ -317,7 +317,7 @@ function App (_p5) {
         attackRadio.option('high');
         attackRadio.option('middle');
         attackRadio.option('low');
-        attackRadio.style('width', '65px');
+        attackRadio.style('width', '67px');
 
         // set default to first option
         attackRadio.elt.querySelector('input').checked = true;
