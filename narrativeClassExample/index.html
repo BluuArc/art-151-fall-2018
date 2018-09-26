@@ -23,7 +23,7 @@
   <script>
     let app;
     p5Loader.loadP5()
-      .then(p5Loader.loadP5Dom)
+      .then(() => Promise.all([p5Loader.loadP5Dom(), p5Loader.loadP5Sound()]))
       .then(() => {
         console.debug('p5 loaded');
         app = new p5(App);
