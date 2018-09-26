@@ -60,7 +60,7 @@ class Maze {
     }
     filledRooms = filledRooms.concat(this._trapRooms);
 
-    this._finishRoom = this.generateRandomPosition([this._startRoom].concat(this._pitRooms));
+    this._finishRoom = this.generateRandomPosition([this._startRoom].concat(this._pitRooms, this._trapRooms));
   }
 
   generateRandomPosition (excludedRooms = []) {
@@ -72,6 +72,14 @@ class Maze {
       result = Math.ceil(Math.random() * 20);
     }
     return result;
+  }
+
+  _getHazardHintForRoom (roomPosition) {
+    const surroundingRooms = this._map[roomPosition];
+    return [
+      surroundingRooms.some(r => this._pitRooms.includes(r)) && 'a draft',
+      surroundingRooms.includes(this._wumpusRoom) && 'a smell',
+    ].filter(val => val);
   }
 
   getRoomInfo (roomPosition) {
@@ -88,6 +96,7 @@ class Maze {
       hasChest: this._chestRooms.includes(position),
       trapContents: this._trapRooms.includes(position) && this.getTrapContents(),
       hasEnd: this._finishRoom === position,
+      hazardHint: this._getHazardHintForRoom(position),
     };
   }
 
