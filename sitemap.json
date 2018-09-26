@@ -23,5 +23,10 @@
     "path": "p5DomClassExample",
     "name": "Class Example for using P5 DOM Library",
     "desc": "Small example of using the p5 DOM library This is also an example of using p5 loader for loading p5 and its libraries."
+  },
+  {
+    "path": "webNarrativeProject",
+    "name": "Web Narrative Project",
+    "desc": "Using p5, create an interactive narrative web app that uses interactive HTML elements such as sliders, buttons, clicks, text boxes, etc. and CSS styling. This game is a variant of \"Hunt the Wumpus\""
   }
 ]
