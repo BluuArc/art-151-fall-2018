@@ -87,6 +87,15 @@ function App (_p5) {
     gameState.wumpusGrowthScale = 1;
     uiElements.roomDescription.hide();
     uiElements.availableButtons = uiElements.availableButtons.map(button => button.remove()).filter(() => false);
+
+    gameOverAnimationConfig.gameOverAnimation = '';
+    gameOverAnimationConfig.progress = 0;
+  }
+
+  function startGameOverAnimation (name) {
+    gameOverAnimationConfig.gameOverAnimation = name;
+    drawButtons([]);
+    uiElements.roomDescription.hide();
   }
 
   const scenes = {
@@ -210,7 +219,7 @@ function App (_p5) {
         if (gameState.currentRoom.trapContents === 'trapStairs') {
           availableActions.push({
             label: commonStrings.ASCEND_STAIRS,
-            action: () => scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.'),
+            action: () => startGameOverAnimation('boulder'),
           });
         } else if (gameState.currentRoom.trapContents === 'mimic') {
           availableActions.push({
@@ -222,7 +231,7 @@ function App (_p5) {
                 gameState.maze.removeTrap(gameState.currentRoom.currentRoom);
                 drawContinueButton();
               } else {
-                scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
+                startGameOverAnimation('mimic');
               }
             },
           });
@@ -274,7 +283,6 @@ function App (_p5) {
         }
       }
 
-      // resetButtons();
       const roomDescriptionText = [
         gameState.currentTurn !== 1 ? (gameState.hasMoved && `You${gameState.inventory.hasWumpus ? ` and ${gameState.wumpusName}` : ''} arrive at the next room.`) : 'You wake up in a room and see three different hallways branching from your current room.',
         (gameState.currentRoom.hasPit && gameState.inventory.hasWumpus) && `You almost fall into a pit, but ${gameState.wumpusName} stops you from falling.`,
@@ -289,7 +297,7 @@ function App (_p5) {
       uiElements.roomDescription.show();
 
       if (gameState.currentRoom.hasPit && !gameState.inventory.hasWumpus) {
-        scenes.gameOver('You fell into a pit and died.');
+        startGameOverAnimation('pitFall');
       } else if (gameState.energyRemaining === 0) {
         scenes.gameOver('You ran out of stamina and fainted.');
       } else {
@@ -302,6 +310,7 @@ function App (_p5) {
     gameOver (reason = 'You died') {
       gameState.gameOver = true;
       uiElements.roomDescription.html(reason);
+      uiElements.roomDescription.show();
       drawButtons([
         {
           label: 'Start Over',
@@ -331,41 +340,41 @@ function App (_p5) {
       }
       attackRadio.show();
       drawButtons([{
-        label: 'Attack',
-        action () {
-          const winsFight = !gameState.maze.doesWumpusAct();
-          const attackLocation = attackRadio.value();
-          const prefix = attackLocation === 'middle' ? `You jab straight ahead with your sword` : `You swing ${attackLocation} with your sword`;
-          const guiltMessage = gameState.inventory.hasWumpus && 'It gives you a look of betrayal and surprise.';
-          if (winsFight) {
-            gameState.maze.removeWumpus();
-            const killMessage = [
-              `${prefix} and pierce the heart of ${gameState.wumpusName || 'the Wumpus'}.`,
-              guiltMessage,
-              `You have successfully slain ${gameState.wumpusName || 'the Wumpus'}.`,
-            ].filter(val => val).join('<br>');
-            gameState.inventory.hasWumpus = false;
-            uiElements.roomDescription.html(killMessage);
-            drawContinueButton();
-          } else {
-            const missPrefix = attackLocation === 'middle' ? `${prefix}, but ${gameState.wumpusName || 'the Wumpus'} dodges to the side.` : `${prefix}, but ${gameState.wumpusName || 'the Wumpus'} ${attackLocation === 'low' ? 'jumps over' : 'ducks under'} it.`;
-            scenes.gameOver([
-              missPrefix,
-              guiltMessage,
-              `In retaliation, ${gameState.wumpusName || 'the Wumpus'} pulls out its own sword and fatally stabs you.`,
-            ].filter(val => val).join('<br>'));
-          }
-          attackRadio.hide();
+          label: 'Attack',
+          action () {
+            const winsFight = !gameState.maze.doesWumpusAct();
+            const attackLocation = attackRadio.value();
+            const prefix = attackLocation === 'middle' ? `You jab straight ahead with your sword` : `You swing ${attackLocation} with your sword`;
+            const guiltMessage = gameState.inventory.hasWumpus && 'It gives you a look of betrayal and surprise.';
+            if (winsFight) {
+              gameState.maze.removeWumpus();
+              const killMessage = [
+                `${prefix} and pierce the heart of ${gameState.wumpusName || 'the Wumpus'}.`,
+                guiltMessage,
+                `You have successfully slain ${gameState.wumpusName || 'the Wumpus'}.`,
+              ].filter(val => val).join('<br>');
+              gameState.inventory.hasWumpus = false;
+              uiElements.roomDescription.html(killMessage);
+              drawContinueButton();
+            } else {
+              const missPrefix = attackLocation === 'middle' ? `${prefix}, but ${gameState.wumpusName || 'the Wumpus'} dodges to the side.` : `${prefix}, but ${gameState.wumpusName || 'the Wumpus'} ${attackLocation === 'low' ? 'jumps over' : 'ducks under'} it.`;
+              scenes.gameOver([
+                missPrefix,
+                guiltMessage,
+                `In retaliation, ${gameState.wumpusName || 'the Wumpus'} pulls out its own sword and fatally stabs you.`,
+              ].filter(val => val).join('<br>'));
+            }
+            attackRadio.hide();
+          },
         },
-      },
-      {
-        label: 'Do something else',
-        action: () => {
-          attackRadio.hide();
-          scenes.drawRoom(false);
+        {
+          label: 'Do something else',
+          action: () => {
+            attackRadio.hide();
+            scenes.drawRoom(false);
+          },
         },
-      },
-    ]);
+      ]);
     },
     tameWumpus (message = 'You have successfully tamed the Wumpus.') {
       uiElements.roomDescription.html([message, 'What would you like to name it?'].join('<br>'));
@@ -395,6 +404,52 @@ function App (_p5) {
         }
       });
     }
+  };
+
+  const gameOverAnimationConfig = {
+    gameOverAnimation: '',
+    progress: 0,
+  };
+
+  const gameOverAnimations = {
+    pitFall () {
+      // circle getting larger to simulate falling
+      const circleRadius = _p5.width * (gameOverAnimationConfig.progress / 100);
+      _p5.fill(_p5.color(circleRadius < _p5.width ? 255 : Math.max(0, 255 - gameOverAnimationConfig.progress), 0, 0));
+      _p5.ellipse(_p5.width / 2, _p5.height / 2, circleRadius);
+
+      if (gameOverAnimationConfig.progress >= 100 && !gameState.gameOver) {
+        scenes.gameOver('You fell into a pit and died.');
+      }
+      gameOverAnimationConfig.progress += Math.min(10, gameOverAnimationConfig.progress === 0 ? 1 : (gameOverAnimationConfig.progress * 1.05));
+    },
+    mimic () {
+      _p5.fill(_p5.color(gameOverAnimationConfig.progress < 100 ? 255 : Math.max(0, 255 - gameOverAnimationConfig.progress), 0, 0));
+
+      // 2 intersecting rects for "chomp" effect
+      const height = _p5.height * (gameOverAnimationConfig.progress / 100);
+      _p5.rect(0, 0, _p5.width, height);
+      _p5.rect(0, _p5.height - height, _p5.width, height);
+
+      if (gameOverAnimationConfig.progress >= 100 && !gameState.gameOver) {
+        scenes.gameOver('You attempt to open the chest, but it stands up and eats you.');
+      }
+      gameOverAnimationConfig.progress += Math.min(10, gameOverAnimationConfig.progress === 0 ? 1 : (gameOverAnimationConfig.progress * 1.05));
+    },
+    boulder () {
+      _p5.fill(_p5.color(gameOverAnimationConfig.progress < 100 ? 255 : Math.max(0, 255 - gameOverAnimationConfig.progress), 0, 0));
+
+      // giant circle falling down
+      const radius = Math.max(_p5.width, _p5.height);
+      const yRange = _p5.height + radius * 2; // height 1.5 diameters
+      const yOffset = yRange * (Math.min(gameOverAnimationConfig.progress, 100) / 100);
+      _p5.ellipse(_p5.width / 2, -(radius * 2) + yOffset, radius);
+
+      if (gameOverAnimationConfig.progress >= 100 && !gameState.gameOver) {
+        scenes.gameOver('You start to ascend the stairs, but a boulder falls and kills you.')
+      }
+      gameOverAnimationConfig.progress += Math.min(10, gameOverAnimationConfig.progress === 0 ? 1 : (gameOverAnimationConfig.progress * 1.01));
+    },
   };
 
   _p5.preload = () => {
@@ -442,6 +497,14 @@ function App (_p5) {
 
   _p5.draw = () => {
     _p5.background(0);
+    if (gameOverAnimationConfig.gameOverAnimation) {
+      const animationName = gameOverAnimationConfig.gameOverAnimation;
+      // console.debug(animationName);
+      if (gameOverAnimations[animationName]) {
+        gameOverAnimations[animationName]();
+      }
+    }
+
     if (gameState.currentRoom && gameState.currentRoom.hasWumpus) {
       if (gameState.gameOver) {
         gameState.wumpusGrowthScale += 0.1;
@@ -480,7 +543,6 @@ function App (_p5) {
       }
     }
   };
-
 
   window[Symbol.for('gamestate')] = gameState;
 }
