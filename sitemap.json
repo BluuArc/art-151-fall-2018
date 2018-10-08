@@ -10,6 +10,11 @@
     "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
   },
   {
+    "path": "jsonArrayClassExample",
+    "name": "JSON Arrays Demo - Class Example",
+    "desc": "Use p5 to load and use JSON data with arrays."
+  },
+  {
     "path": "jsonDemoClassExample",
     "name": "JSON Demo - Class Example",
     "desc": "Use p5 to load and use JSON data."
