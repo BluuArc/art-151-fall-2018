@@ -9,7 +9,7 @@
       });
     }
 
-    // meant to be used by one folder level down
+    // meant to be used by scripts one folder level down
     const mappings = {
       p5: ['https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/p5.min.js', '../processing-3.4/p5.min.js'],
       p5Dom: ['https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.dom.js', '../processing-3.4/p5-addons/p5.dom.js'],
