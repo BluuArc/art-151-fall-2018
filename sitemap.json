@@ -25,6 +25,11 @@
     "desc": "Example from class for using P5 to create a narrative."
   },
   {
+    "path": "owmClassExample",
+    "name": "OpenWeatherMaps API Demo - Class Example",
+    "desc": "Use p5 to load and use JSON data from the OpenWeatherMaps API."
+  },
+  {
     "path": "p5ClassExample",
     "name": "Class Example for using P5",
     "desc": "Small example of using p5.js. This is also an example of using the instance mode for p5.js."
