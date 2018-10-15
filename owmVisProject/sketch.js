@@ -33,6 +33,7 @@ function App (_p5) {
         this.value = null;
       }
       console.debug('updated active incident value to', this.value);
+      updateTooltip();
     },
     get index () {
       return this._index;
@@ -43,7 +44,35 @@ function App (_p5) {
   const uiElements = {
     unitSelector: null,
     locationSearch: null,
+    descriptionTooltip: null,
   };
+
+  // const mousePosition = {
+  //   x: 0,
+  //   y: 0
+  // };
+  // document.onmousemove = e => {
+  //   mousePosition.x = e.pageX;
+  //   mousePosition.y = e.pageY;
+  // }
+
+  function updateTooltip () {
+    let tooltip = uiElements.descriptionTooltip;
+    if (!tooltip) {
+      tooltip = _p5.createElement('div');
+      tooltip.class('tooltip');
+      uiElements.descriptionTooltip = tooltip;
+    }
+
+    if (!activeIncident.value) {
+      tooltip.hide();
+    } else {
+      tooltip.elt.innerHTML = JSON.stringify(activeIncident.value);
+      tooltip.position(_p5.mouseX, _p5.mouseY);
+      tooltip.show();
+    }
+    console.debug(tooltip);
+  }
 
   const weatherConfig = {
     location: 'Chicago',
@@ -64,6 +93,9 @@ function App (_p5) {
   }
 
   function updateWeatherData () {
+    setTimeout(() => {
+      isFirstDataEntry = true;
+    }, 1000);
     return dataCollector.update(dataKeys.weather);
   }
 
@@ -140,7 +172,7 @@ function App (_p5) {
 
   function drawBikeIncidentMap (xOffset = 0, yOffset = 0, xEndOffset = 0, yEndOffset = 0) {
     const featureCollection = dataCollector.getData(dataKeys.bikeIncidents);
-    if (!featureCollection) {
+    if (!featureCollection || featureCollection.error) {
       return;
     }
 
@@ -150,6 +182,8 @@ function App (_p5) {
     const mapLon = (lon) => _p5.map(lon, mapBounds.lon[0], mapBounds.lon[1], yOffset, _p5.height - yEndOffset);
 
     let activeIndex = activeIncident.index;
+    let mouseIsOnPoint = false;
+    // display points and get point near mouse
     featureCollection.features.forEach((feature, i) => {
       const [lon, lat] = feature.geometry.coordinates;
       const [x, y] = [mapLat(lat), mapLon(lon)];
@@ -157,6 +191,7 @@ function App (_p5) {
       if (Math.abs(_p5.mouseX - x) < 10 && Math.abs(_p5.mouseY - y) < 10) {
         _p5.strokeWeight(1);
         if (_p5.mouseIsPressed) {
+          mouseIsOnPoint = true;
           activeIndex = i;
         }
       } else if (activeIncident.index === i) {
@@ -166,11 +201,24 @@ function App (_p5) {
       }
       _p5.ellipse(x, y, 10, 10);
     });
+    if (!mouseIsOnPoint && _p5.mouseIsPressed) {
+      activeIndex = -1;
+    }
     activeIncident.index = activeIndex;
   }
 
   _p5.draw = () => {
     _p5.background(0);
+    const padding = 100;
+    _p5.stroke(255);
+    _p5.fill(0);
+    _p5.strokeWeight(5);
+    _p5.ellipseMode(_p5.CENTER);
+    // const size = Math.min(_p5.width, _p)
+    // _p5.ellipse(_p5.width / 2, _p5.height / 2, _p5.width - padding, _p5.height - padding);
+    _p5.rect(padding, padding, _p5.width - padding * 2, _p5.height - padding * 2);
+
+    _p5.strokeWeight(0);
     _p5.fill(255);
     _p5.textSize(30);
     const weatherData = dataCollector.getData(dataKeys.weather);
@@ -193,6 +241,6 @@ function App (_p5) {
     _p5.text(`${weatherData.name} (${weatherData.sys.country}) Status: ${weatherData.weather[0].description}`, 10, 50);
     _p5.text(`Updated: ${Math.floor((new Date() - dataCollector.getUpdateTime(dataKeys.weather)) / 1000)} seconds ago`, 10, 80);
 
-    drawBikeIncidentMap(50, 100, 50, 100);
+    drawBikeIncidentMap(padding, padding, padding, padding);
   };
 }
