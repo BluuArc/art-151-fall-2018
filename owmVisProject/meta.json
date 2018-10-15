@@ -1,0 +1,4 @@
+{
+  "name": "OpenWeatherMaps Visualization Project",
+  "desc": "Use OpenWeatherMaps, sunset/sunrise data, and bike incident data to create a biking dashboard for a given area."
+}
