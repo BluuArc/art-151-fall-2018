@@ -38,6 +38,7 @@ class DataCollector {
   async updateAll () {
     const keys = Object.keys(this._entries);
     for (const key of keys) {
+      console.debug('updating', key);
       await this.update(key);
     }
   }

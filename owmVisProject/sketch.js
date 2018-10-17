@@ -8,8 +8,17 @@ function App (_p5) {
     sun: 'sun',
     bikeIncidents: 'bikeIncidents',
   };
+  const bikeWiseConfig = {
+    proximity: 100,
+  }
   const mapBounds = {
     maxSize: 0,
+    size: 0,
+  };
+  const weatherMarkerLocation = {
+    x: 0,
+    y: 0,
+    data: null,
   };
   let isFirstDataEntry = true;
 
@@ -46,15 +55,6 @@ function App (_p5) {
     descriptionTooltip: null,
   };
 
-  // const mousePosition = {
-  //   x: 0,
-  //   y: 0
-  // };
-  // document.onmousemove = e => {
-  //   mousePosition.x = e.pageX;
-  //   mousePosition.y = e.pageY;
-  // }
-
   function updateTooltip () {
     let tooltip = uiElements.descriptionTooltip;
     if (!tooltip) {
@@ -73,29 +73,25 @@ function App (_p5) {
     console.debug(tooltip);
   }
 
+  // hardcode to chicago as bikewise api
   const weatherConfig = {
-    location: 'Chicago',
+    location: 'Chicago,us',
     units: 'imperial',
   };
 
-  function generateWeatherUrl (location = 'Chicago,us', units = 'imperial') {
-    return [
-      `https://api.openweathermap.org/data/2.5/weather?q=${location}`,
+  function generateWeatherUrl (location, units = 'imperial', lat, lon) {
+    const params = [
+      location && `q=${location}`,
       `appid=ea59760eb0a97d59a6da4eb60701f0e4`,
-      `units=${units}`,
-    ].join('&');
+      units && `units=${units}`,
+      lat && lon && `lat=${lat}&lon=${lon}`
+    ].filter(v => v).join('&');
+    return `https://api.openweathermap.org/data/2.5/weather?${params}`;
   }
 
-  function getWeatherData (location, units) {
-    return fetch(generateWeatherUrl(location, units))
+  function getWeatherData (location, units, lat, lon) {
+    return fetch(generateWeatherUrl(location, units, lat, lon))
       .then(response => response.json());
-  }
-
-  function updateWeatherData () {
-    setTimeout(() => {
-      isFirstDataEntry = true;
-    }, 1000);
-    return dataCollector.update(dataKeys.weather);
   }
 
   function pointsToPolarVector (point1 = [], point2 = []) {
@@ -124,6 +120,18 @@ function App (_p5) {
     ];
   }
 
+  function canvasCoordToLonLatCoords (
+    canvasCoords,
+    mapCenter = [_p5.width / 2, _p5.height / 2],
+    latLngCenter = [dataCollector.getData(dataKeys.weather).coord.lon, dataCollector.getData(dataKeys.weather).coord.lat],
+    mapRadius = mapBounds.size) {
+    const canvasVector = pointsToPolarVector(mapCenter, canvasCoords);
+    return polarVectorToCartesianCoords({
+      angle: canvasVector.angle,
+      size: _p5.map(canvasVector.size, 0, mapRadius, 0, mapBounds.maxSize),
+    }, latLngCenter);
+  }
+
   _p5.preload = () => {
     // weather entry
     dataCollector.add(dataKeys.weather, () => getWeatherData(weatherConfig.location, weatherConfig.units));
@@ -148,7 +156,8 @@ function App (_p5) {
         return oldEntry;
       } else {
         const centerPoint = [weatherData.coord.lon, weatherData.coord.lat];
-        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=100&proximity=${centerPoint[1]},${centerPoint[0]}`)
+        // return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=${bikewiseConfig.proximity}&proximity=${centerPoint[1]},${centerPoint[0]}`)
+        return fetch('./chicago-bikewise-sample.json')
           .then(response => response.json())
           .then(data => {
             // update map bounds
@@ -174,24 +183,45 @@ function App (_p5) {
     dataCollector.setCustomIntervalFor(dataKeys.bikeIncidents, 60 * 1000);
   };
 
+  function updateWeatherMarkerLocation (x, y) {
+    weatherMarkerLocation.x = x;
+    weatherMarkerLocation.y = y;
+    const [lon, lat] = canvasCoordToLonLatCoords([weatherMarkerLocation.x, weatherMarkerLocation.y]);
+    console.debug('new weather marker location', weatherMarkerLocation, [lon, lat]);
+    return getWeatherData(null, weatherConfig.units, lat, lon)
+      .then(d => {
+        weatherMarkerLocation.data = d;
+        console.debug('marker weather', d);
+        return d;
+      });
+  }
+
+  function setupWeatherMarkerHandler () {
+    // source: https://stackoverflow.com/questions/4909167/how-to-add-a-custom-right-click-menu-to-a-webpage
+    if (document.addEventListener) { // IE >= 9; other browsers
+      document.addEventListener('contextmenu', function (e) {
+        updateWeatherMarkerLocation(_p5.mouseX, _p5.mouseY);
+        e.preventDefault();
+      }, false);
+    } else { // IE < 9
+      document.attachEvent('oncontextmenu', function () {
+        updateWeatherMarkerLocation(_p5.mouseX, _p5.mouseY);
+        window.event.returnValue = false;
+      });
+    }
+  }
+
   _p5.setup = () => {
     console.debug('entered setup');
-    
-    dataCollector.updateAll();
-
     _p5.createCanvas(_p5.windowWidth, _p5.windowHeight);
+    setupWeatherMarkerHandler();
+    dataCollector.updateAll()
+      .then(() => {
+        updateWeatherMarkerLocation(_p5.width / 2, _p5.height);
+      });
 
-    // location search input
-    uiElements.locationSearch = _p5.createInput();
-    uiElements.locationSearch.position(10, 0);
-    uiElements.locationSearch.value(weatherConfig.location); // default
-    // ['Chicago', 'London', 'New York', 'Miami', 'Tokyo', 'Athens'].forEach(val => uiElements.locationDropdown.option(val));
-    uiElements.locationSearch.changed(() => {
-      weatherConfig.location = uiElements.locationSearch.value();
-      updateWeatherData();
-    });
-
-    // uiElements.unitSelector = _p5.createSelect();
+    const padding = 100;
+    mapBounds.size = Math.min(_p5.width, _p5.height) - padding;
   };
 
   function drawBikeIncidentMap (centerPoint, radius) {
@@ -243,21 +273,32 @@ function App (_p5) {
 
   _p5.draw = () => {
     _p5.background(0);
-    const padding = 100;
+    
     _p5.stroke(255);
     _p5.fill(0);
     _p5.strokeWeight(5);
 
     // draw circular map
     _p5.ellipseMode(_p5.CENTER);
-    const size = Math.min(_p5.width, _p5.height) - padding;
+    const size = mapBounds.size;
     const [centerX, centerY] = [_p5.width / 2, _p5.height / 2];
     _p5.ellipse(centerX, centerY, size, size);
 
     // draw crosshairs
     _p5.strokeWeight(1);
+    _p5.ellipse(centerX, centerY, 2 / 3 * size, 2 / 3 * size);
+    _p5.ellipse(centerX, centerY, size / 3, size / 3);
     _p5.line(centerX, centerY - size / 2, centerX, centerY + size / 2);
     _p5.line(centerX - size / 2, centerY, centerX + size / 2, centerY);
+
+    // draw axes labels
+    for (let i = 1; i <= 3; ++i) {
+      _p5.fill(255);
+      _p5.stroke(1);
+      _p5.textSize(25);
+      _p5.text(`${Math.floor(1000 / 3 * i)} mi`, centerX + (size / 2 * i / 3), centerY);
+      _p5.text(`${Math.floor(1000 / 3 * i)} mi`, centerX, centerY - (size / 2 * i / 3));
+    }
 
     // display weather data
     _p5.strokeWeight(0);
@@ -284,5 +325,12 @@ function App (_p5) {
     _p5.text(`Updated: ${Math.floor((new Date() - dataCollector.getUpdateTime(dataKeys.weather)) / 1000)} seconds ago`, 10, 80);
 
     drawBikeIncidentMap([centerX, centerY], size / 2);
+
+    if (weatherMarkerLocation.data) {
+      _p5.fill(_p5.color(0, 0, 255, 200));
+      _p5.stroke(255);
+      _p5.strokeWeight(1);
+      _p5.ellipse(weatherMarkerLocation.x, weatherMarkerLocation.y, 10, 10);
+    }
   };
 }
