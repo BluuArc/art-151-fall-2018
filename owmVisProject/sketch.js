@@ -9,8 +9,7 @@ function App (_p5) {
     bikeIncidents: 'bikeIncidents',
   };
   const mapBounds = {
-    lat: [],
-    lon: [],
+    maxSize: 0,
   };
   let isFirstDataEntry = true;
 
@@ -99,6 +98,32 @@ function App (_p5) {
     return dataCollector.update(dataKeys.weather);
   }
 
+  function pointsToPolarVector (point1 = [], point2 = []) {
+    const [x1, y1] = point1;
+    const [x2, y2] = point2;
+    const [xDiff, yDiff] = [x2 - x1, y2 - y1]; // point2 - point1
+    let angle = Math.atan(yDiff / xDiff); // in radians
+    if (xDiff < 0) { // quadrants II and III
+      angle += Math.PI;
+    } else if (xDiff > 0 && yDiff < 0) { // quadrant IV
+      angle += 2 * Math.PI;
+    }
+    return {
+      size: Math.sqrt(xDiff * xDiff + yDiff * yDiff),
+      angle,
+      degAngle: angle * 180 / Math.PI,
+    };
+  }
+
+  // assumption: angle in radians
+  function polarVectorToCartesianCoords ({ size, angle }, startPoint = [0, 0]) {
+    const [x, y] = startPoint;
+    return [
+      x + size * Math.cos(angle),
+      y + size * Math.sin(angle),
+    ];
+  }
+
   _p5.preload = () => {
     // weather entry
     dataCollector.add(dataKeys.weather, () => getWeatherData(weatherConfig.location, weatherConfig.units));
@@ -122,26 +147,25 @@ function App (_p5) {
       if (!weatherData || !weatherData.coord) {
         return oldEntry;
       } else {
-        const { lon, lat } = weatherData.coord;
-        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=100&proximity=${lat},${lon}`)
+        const centerPoint = [weatherData.coord.lat, weatherData.coord.lon];
+        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=100&proximity=${centerPoint[0]},${centerPoint[1]}`)
           .then(response => response.json())
           .then(data => {
             // update map bounds
-            let minLat = 1000, maxLat = -1000;
-            let minLon = 1000, maxLon = -1000;
+            let maxSize = -1000;
 
             if (data && data.features) {
+              // get vector for each point
+              let lastKnownPolarVector;
               data.features.forEach(feature => {
                 const [lon, lat] = feature.geometry.coordinates;
-                minLat = Math.min(lat, minLat);
-                maxLat = Math.max(lat, maxLat);
-
-                minLon = Math.min(lon, minLon);
-                maxLon = Math.max(lon, maxLon);
+                const polarVector = pointsToPolarVector(centerPoint, [lat, lon]);
+                maxSize = Math.max(maxSize, polarVector.size);
+                feature.geometry.polarVector = polarVector;
+                lastKnownPolarVector = polarVector;
               });
-              mapBounds.lat = [minLat, maxLat];
-              mapBounds.lon = [minLon, maxLon];
-              console.debug(mapBounds);
+              mapBounds.maxSize = maxSize;
+              console.debug(mapBounds, lastKnownPolarVector);
             }
             return data;
           });
@@ -170,7 +194,7 @@ function App (_p5) {
     // uiElements.unitSelector = _p5.createSelect();
   };
 
-  function drawBikeIncidentMap (xOffset = 0, yOffset = 0, xEndOffset = 0, yEndOffset = 0) {
+  function drawBikeIncidentMap (centerPoint, radius) {
     const featureCollection = dataCollector.getData(dataKeys.bikeIncidents);
     if (!featureCollection || featureCollection.error) {
       return;
@@ -178,15 +202,14 @@ function App (_p5) {
 
     _p5.stroke(255);
     _p5.ellipseMode(_p5.CENTER);
-    const mapLat = (lat) => _p5.map(lat, mapBounds.lat[0], mapBounds.lat[1], xOffset, _p5.width - xEndOffset);
-    const mapLon = (lon) => _p5.map(lon, mapBounds.lon[0], mapBounds.lon[1], yOffset, _p5.height - yEndOffset);
+    const getScaledSize = (size) => _p5.map(size, 0, mapBounds.maxSize, 0, radius);
 
     let activeIndex = activeIncident.index;
     let mouseIsOnPoint = false;
     // display points and get point near mouse
     featureCollection.features.forEach((feature, i) => {
-      const [lon, lat] = feature.geometry.coordinates;
-      const [x, y] = [mapLat(lat), mapLon(lon)];
+      const { polarVector } = feature.geometry;
+      const [x, y] = polarVectorToCartesianCoords({ size: getScaledSize(polarVector.size), angle: polarVector.angle }, centerPoint);
       _p5.fill(_p5.color(feature.properties['marker-color']));
       if (Math.abs(_p5.mouseX - x) < 10 && Math.abs(_p5.mouseY - y) < 10) {
         _p5.strokeWeight(1);
@@ -213,11 +236,19 @@ function App (_p5) {
     _p5.stroke(255);
     _p5.fill(0);
     _p5.strokeWeight(5);
-    _p5.ellipseMode(_p5.CENTER);
-    // const size = Math.min(_p5.width, _p)
-    // _p5.ellipse(_p5.width / 2, _p5.height / 2, _p5.width - padding, _p5.height - padding);
-    _p5.rect(padding, padding, _p5.width - padding * 2, _p5.height - padding * 2);
 
+    // draw circular map
+    _p5.ellipseMode(_p5.CENTER);
+    const size = Math.min(_p5.width, _p5.height) - padding;
+    const [centerX, centerY] = [_p5.width / 2, _p5.height / 2];
+    _p5.ellipse(centerX, centerY, size, size);
+
+    // draw crosshairs
+    _p5.strokeWeight(1);
+    _p5.line(centerX, centerY - size / 2, centerX, centerY + size / 2);
+    _p5.line(centerX - size / 2, centerY, centerX + size / 2, centerY);
+
+    // display weather data
     _p5.strokeWeight(0);
     _p5.fill(255);
     _p5.textSize(30);
@@ -241,6 +272,6 @@ function App (_p5) {
     _p5.text(`${weatherData.name} (${weatherData.sys.country}) Status: ${weatherData.weather[0].description}`, 10, 50);
     _p5.text(`Updated: ${Math.floor((new Date() - dataCollector.getUpdateTime(dataKeys.weather)) / 1000)} seconds ago`, 10, 80);
 
-    drawBikeIncidentMap(padding, padding, padding, padding);
+    drawBikeIncidentMap([centerX, centerY], size / 2);
   };
 }
