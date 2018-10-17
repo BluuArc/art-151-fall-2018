@@ -5,6 +5,11 @@
     "desc": "Using a combination of variables, images, for loops, animations, conditional statements, text, color, etc. create a “Drawing Application” that uses keyboard and mouse user input. Must include at least one for loop and two conditional statement."
   },
   {
+    "path": "astrosClassExample",
+    "name": "JSON Demo - Class Example using Open Notify Astros API",
+    "desc": "Use p5 to load and use JSON data using Open Notify Astros API."
+  },
+  {
     "path": "bubblesExample",
     "name": "Bubbles Example",
     "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
@@ -28,6 +33,11 @@
     "path": "owmClassExample",
     "name": "OpenWeatherMaps API Demo - Class Example",
     "desc": "Use p5 to load and use JSON data from the OpenWeatherMaps API."
+  },
+  {
+    "path": "owmVisProject",
+    "name": "OpenWeatherMaps Visualization Project",
+    "desc": "Use OpenWeatherMaps, sunset/sunrise data, and bike incident data to create a biking dashboard for a given area."
   },
   {
     "path": "p5ClassExample",

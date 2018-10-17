@@ -147,8 +147,8 @@ function App (_p5) {
       if (!weatherData || !weatherData.coord) {
         return oldEntry;
       } else {
-        const centerPoint = [weatherData.coord.lat, weatherData.coord.lon];
-        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=100&proximity=${centerPoint[0]},${centerPoint[1]}`)
+        const centerPoint = [weatherData.coord.lon, weatherData.coord.lat];
+        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=100&proximity=${centerPoint[1]},${centerPoint[0]}`)
           .then(response => response.json())
           .then(data => {
             // update map bounds
@@ -159,7 +159,7 @@ function App (_p5) {
               let lastKnownPolarVector;
               data.features.forEach(feature => {
                 const [lon, lat] = feature.geometry.coordinates;
-                const polarVector = pointsToPolarVector(centerPoint, [lat, lon]);
+                const polarVector = pointsToPolarVector(centerPoint, [lon, lat]);
                 maxSize = Math.max(maxSize, polarVector.size);
                 feature.geometry.polarVector = polarVector;
                 lastKnownPolarVector = polarVector;
@@ -206,10 +206,17 @@ function App (_p5) {
 
     let activeIndex = activeIncident.index;
     let mouseIsOnPoint = false;
+    let lastKnownCoords;
+    let preConversionCoords;
     // display points and get point near mouse
     featureCollection.features.forEach((feature, i) => {
       const { polarVector } = feature.geometry;
-      const [x, y] = polarVectorToCartesianCoords({ size: getScaledSize(polarVector.size), angle: polarVector.angle }, centerPoint);
+      let [x, y] = polarVectorToCartesianCoords({ size: getScaledSize(polarVector.size), angle: polarVector.angle });
+      preConversionCoords = [x, y];
+      // change coords to match canvas coords
+      y *= -1;
+      x += centerPoint[0];
+      y += centerPoint[1];
       _p5.fill(_p5.color(feature.properties['marker-color']));
       if (Math.abs(_p5.mouseX - x) < 10 && Math.abs(_p5.mouseY - y) < 10) {
         _p5.strokeWeight(1);
@@ -223,11 +230,15 @@ function App (_p5) {
         _p5.strokeWeight(0);
       }
       _p5.ellipse(x, y, 10, 10);
+      lastKnownCoords = [x, y];
     });
     if (!mouseIsOnPoint && _p5.mouseIsPressed) {
       activeIndex = -1;
     }
     activeIncident.index = activeIndex;
+    window.lastKnownCoords = lastKnownCoords;
+    window.centerPoint = centerPoint;
+    window.preConversionCoords = preConversionCoords;
   }
 
   _p5.draw = () => {
