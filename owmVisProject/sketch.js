@@ -57,7 +57,7 @@ function App (_p5) {
     descriptionTooltip: null,
   };
 
-  function showReadme () {
+  function showReadme (reposition = true) {
     const tooltip = updateTooltip();
     const { title, description, footer } = tooltip.contentElems;
     title.html('');
@@ -67,10 +67,12 @@ function App (_p5) {
       .then(() => {
         description.html(dataCollector.getData(dataKeys.readme));
         tooltip.elem.show();
-        tooltip.elem.position(
-          _p5.width / 2 - (+tooltip.elem.elt.offsetWidth / 2),
-          Math.max(_p5.height / 2 - (+tooltip.elem.elt.offsetHeight / 2), 0)
-        );
+        if (reposition) {
+          tooltip.elem.position(
+            _p5.width / 2 - (+tooltip.elem.elt.offsetWidth / 2),
+            Math.max(_p5.height / 2 - (+tooltip.elem.elt.offsetHeight / 2), 0)
+          );
+        }
       });
   }
 
@@ -295,7 +297,7 @@ function App (_p5) {
     mapBounds.size = Math.min(_p5.width, _p5.height) - padding;
     mapBounds.center = [_p5.width / 2, _p5.height / 2];
     showReadme();
-    uiElements.descriptionTooltip.setReadmeAction(() => showReadme());
+    uiElements.descriptionTooltip.setReadmeAction(() => showReadme(false));
   };
 
   function drawBikeIncidentMap (centerPoint, radius) {

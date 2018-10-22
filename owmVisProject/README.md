@@ -16,16 +16,16 @@ This project combines OpenWeatherMap data with bike incidents from [the BikeWise
   * Tooltip is a floating `div` for showing details.
   * Tooltip contains two main buttons in the toolbar, `?` for showing the instructions and `X` for closing the popup.
 * use at least two JSON files (weather and JSON of your choice)
-  * OWM data
-  * bike incident data from [the BikeWise API](https://www.bikewise.org/documentation/api_v2#!/locations)
+  * [OpenWeatherMap data](https://openweathermap.org/current) for current day
+  * bike incident data from [the BikeWise API](https://www.bikewise.org/documentation/api_v2)
 * use callbacks
   * many used for Promises, loops, and action listeners (such as `changed`, `mouseOver`, and `mouseOut`)
 
 
 ## Other
 * Libraries Used
-  * P5
-  * D3
-  * DateFns
+  * [p5.js](https://p5js.org/) for drawing the canvas
+  * [D3.js](https://d3js.org/) for the weather color scale (specifically [this color scale](https://github.com/d3/d3-scale-chromatic#interpolateRdYlBu))
+  * [date-fns](https://date-fns.org/) for showing relative date information for each bike incident
   * [Marked](https://github.com/markedjs/marked) for compiling the readme file into HTML on-the-fly
 
