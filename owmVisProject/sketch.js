@@ -59,17 +59,22 @@ function App (_p5) {
   function updateTooltip () {
     let tooltip = uiElements.descriptionTooltip;
     if (!tooltip) {
-      tooltip = _p5.createElement('div');
-      tooltip.class('tooltip');
+      // tooltip = _p5.createElement('div');
+      // tooltip.class('tooltip');
+      tooltip = new FloatingWindow(_p5);
       uiElements.descriptionTooltip = tooltip;
+      tooltip.elem.hide();
     }
 
     if (!activeIncident.value) {
-      tooltip.hide();
+      tooltip.elem.hide();
     } else {
-      tooltip.elt.innerHTML = JSON.stringify(activeIncident.value);
-      tooltip.position(_p5.mouseX, _p5.mouseY);
-      tooltip.show();
+      tooltip.contentElem.elt.innerHTML = JSON.stringify(activeIncident.value);
+      if (!tooltip.isVisible) {
+        console.debug('showing tooltip');
+        tooltip.elem.position(_p5.mouseX, _p5.mouseY);
+        tooltip.elem.show();
+      }
     }
     console.debug(tooltip);
   }
@@ -300,7 +305,9 @@ function App (_p5) {
     if (!mouseIsOnPoint && _p5.mouseIsPressed) {
       activeIndex = -1;
     }
-    activeIncident.index = activeIndex;
+    if (!uiElements.descriptionTooltip || (!uiElements.descriptionTooltip.mouseInTooltip && !uiElements.descriptionTooltip.isMovingWindow)) {
+      activeIncident.index = activeIndex;
+    }
     // window.lastKnownCoords = lastKnownCoords;
     // window.centerPoint = centerPoint;
     // window.preConversionCoords = preConversionCoords;
@@ -380,5 +387,12 @@ function App (_p5) {
     });
 
     drawBikeIncidentMap([centerX, centerY], size / 2);
+
+    if (uiElements.descriptionTooltip && uiElements.descriptionTooltip.isMovingWindow) {
+      const tooltip = uiElements.descriptionTooltip;
+      const offsetX = -tooltip.toolbar.elt.offsetWidth / 2;
+      const offsetY = -tooltip.toolbar.elt.offsetHeight / 2;
+      uiElements.descriptionTooltip.elem.position(_p5.mouseX + offsetX, _p5.mouseY + offsetY);
+    }
   };
 }

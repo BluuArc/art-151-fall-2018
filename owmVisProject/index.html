@@ -20,12 +20,23 @@
       overflow: auto;
     }
 
+    .tooltip:hover .tooltip--toolbar {
+      background: slategrey;
+    }
+
+    .tooltip--toolbar {
+      display: flex;
+      justify-content: flex-end;
+      background: grey;
+    }
+
     .tooltip img {
       max-width: 100%;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
   <script src="DataCollector.js"></script>
+  <script src="FloatingWindow.js"></script>
   <script src="../p5-loader.js"></script>
   <script src="sketch.js"></script>
 </head>
