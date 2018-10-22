@@ -14,20 +14,27 @@
     .tooltip {
       position: absolute;
       min-width: 150px;
-      max-width: 300px;
+      max-width: 500px;
       min-height: 150px;
       background-color: white;
       overflow: auto;
     }
 
-    .tooltip:hover .tooltip--toolbar {
-      background: slategrey;
+    .tooltip--toolbar:hover {
+      background: grey;
     }
 
     .tooltip--toolbar {
       display: flex;
       justify-content: flex-end;
-      background: grey;
+    }
+
+    .tooltip--toolbar, .tooltip--footer {
+      background: slategrey;
+    }
+
+    .tooltip--footer {
+      color: white;
     }
 
     .tooltip img {
@@ -35,6 +42,7 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+  <script src="http://cdn.date-fns.org/v1.9.0/date_fns.min.js"></script>
   <script src="DataCollector.js"></script>
   <script src="FloatingWindow.js"></script>
   <script src="../p5-loader.js"></script>

@@ -69,7 +69,19 @@ function App (_p5) {
     if (!activeIncident.value) {
       tooltip.elem.hide();
     } else {
-      tooltip.contentElem.elt.innerHTML = JSON.stringify(activeIncident.value);
+      // tooltip.contentElem.elt.innerHTML = JSON.stringify(activeIncident.value);
+      tooltip.setContent(
+        activeIncident.value.properties.title,
+        activeIncident.value.properties.description,
+        [
+          'Occurred',
+          dateFns.distanceInWords(
+            new Date(),
+            new Date(activeIncident.value.properties.occurred_at.split(' ').slice(0, 1)),
+            { addSuffix: true }
+          ),
+        ].join(' ')
+      );
       if (!tooltip.isVisible) {
         console.debug('showing tooltip');
         tooltip.elem.position(_p5.mouseX, _p5.mouseY);
