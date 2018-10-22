@@ -37,7 +37,7 @@
   {
     "path": "owmVisProject",
     "name": "OpenWeatherMaps Visualization Project",
-    "desc": "Use OpenWeatherMaps, sunset/sunrise data, and bike incident data to create a biking dashboard for a given area."
+    "desc": "Use OpenWeatherMaps and bike incident data to create a biking dashboard for a given area."
   },
   {
     "path": "p5ClassExample",
