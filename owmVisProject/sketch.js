@@ -8,6 +8,7 @@ function App (_p5) {
     weather: 'weather',
     sun: 'sun',
     bikeIncidents: 'bikeIncidents',
+    readme: 'readme'
   };
   const bikeWiseConfig = {
     proximity: 100,
@@ -56,6 +57,23 @@ function App (_p5) {
     descriptionTooltip: null,
   };
 
+  function showReadme () {
+    const tooltip = updateTooltip();
+    const { title, description, footer } = tooltip.contentElems;
+    title.html('');
+    footer.html('<a href="https://github.com/BluuArc/castor-art-151-fall-2018/tree/master/owmVisProject" target="_blank" rel="noopener">GitHub Repo</a>');
+
+    return dataCollector.update(dataKeys.readme)
+      .then(() => {
+        description.html(dataCollector.getData(dataKeys.readme));
+        tooltip.elem.show();
+        tooltip.elem.position(
+          _p5.width / 2 - (+tooltip.elem.elt.offsetWidth / 2),
+          Math.max(_p5.height / 2 - (+tooltip.elem.elt.offsetHeight / 2), 0)
+        );
+      });
+  }
+
   function updateTooltip () {
     let tooltip = uiElements.descriptionTooltip;
     if (!tooltip) {
@@ -89,6 +107,7 @@ function App (_p5) {
       }
     }
     console.debug(tooltip);
+    return tooltip;
   }
 
   // hardcode to chicago as bikewise api
@@ -175,8 +194,8 @@ function App (_p5) {
         return oldEntry;
       } else {
         const centerPoint = [weatherData.coord.lon, weatherData.coord.lat];
-        // return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=${bikeWiseConfig.proximity}&proximity=${centerPoint[1]},${centerPoint[0]}`)
-        return fetch('./chicago-bikewise-sample.json')
+        return fetch(`https://bikewise.org:443/api/v2/locations/markers?proximity_square=${bikeWiseConfig.proximity}&proximity=${centerPoint[1]},${centerPoint[0]}`)
+        // return fetch('./chicago-bikewise-sample.json')
           .then(response => response.json())
           .then(data => {
             // update map bounds
@@ -200,9 +219,16 @@ function App (_p5) {
       }
     });
     dataCollector.setCustomIntervalFor(dataKeys.bikeIncidents, 60 * 1000);
+
+    dataCollector.add(dataKeys.readme, () => {
+      return fetch('./README.md')
+        .then(r => r.text())
+        .then(marked);
+    });
+    dataCollector.setCustomIntervalFor(dataKeys.readme, 60 * 1000);
   };
 
-  function updateWeatherMarkerLocation (x, y) {
+  function updateWeatherMarkerLocation (x = weatherMarkerLocation.x, y = weatherMarkerLocation.y) {
     weatherMarkerLocation.x = x;
     weatherMarkerLocation.y = y;
     const [lon, lat] = canvasCoordToLonLatCoords([weatherMarkerLocation.x, weatherMarkerLocation.y]);
@@ -250,7 +276,12 @@ function App (_p5) {
     uiElements.proximitySelector.value(bikeWiseConfig.proximity);
     uiElements.proximitySelector.changed(() => {
       bikeWiseConfig.proximity = +uiElements.proximitySelector.value() || 100;
-      dataCollector.update(dataKeys.bikeIncidents);
+      dataCollector.update(dataKeys.bikeIncidents)
+        .then(() => {
+          if (weatherMarkerLocation.x && weatherMarkerLocation.y) {
+            updateWeatherMarkerLocation();
+          }
+        });
     });
     uiElements.proximitySelector.position(125, 0);
     _p5.createCanvas(_p5.windowWidth, _p5.windowHeight);
@@ -263,6 +294,8 @@ function App (_p5) {
     const padding = 100;
     mapBounds.size = Math.min(_p5.width, _p5.height) - padding;
     mapBounds.center = [_p5.width / 2, _p5.height / 2];
+    showReadme();
+    uiElements.descriptionTooltip.setReadmeAction(() => showReadme());
   };
 
   function drawBikeIncidentMap (centerPoint, radius) {
@@ -277,8 +310,8 @@ function App (_p5) {
 
     let activeIndex = activeIncident.index;
     let mouseIsOnPoint = false;
-    let lastKnownCoords;
     let preConversionCoords;
+    let lastKnownCoords;
     const nearbyPoints = [];
     // display points and get point near mouse
     featureCollection.features.forEach((feature, i) => {
@@ -400,6 +433,7 @@ function App (_p5) {
 
     drawBikeIncidentMap([centerX, centerY], size / 2);
 
+    // update tooltip location if dragging tooltip
     if (uiElements.descriptionTooltip && uiElements.descriptionTooltip.isMovingWindow) {
       const tooltip = uiElements.descriptionTooltip;
       const offsetX = -tooltip.toolbar.elt.offsetWidth / 2;

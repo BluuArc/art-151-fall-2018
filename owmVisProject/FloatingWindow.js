@@ -3,6 +3,7 @@ class FloatingWindow {
     this._p5 = _p5;
     this._elem = this._p5.createElement('div');
     this.mouseInMinimizeButton = false;
+    this._readmeAction = () => {};
 
     // setup tooltip
     this._elem.class('tooltip');
@@ -10,6 +11,14 @@ class FloatingWindow {
     this._toolbar = this._p5.createElement('div');
     this._toolbar.class('tooltip--toolbar');
     this._toolbar.parent(this._elem);
+
+    this._readmeButton = this._p5.createButton('?');
+    this._readmeButton.mouseOver(() => this.mouseInMinimizeButton = true);
+    this._readmeButton.mouseOut(() => this.mouseInMinimizeButton = false);
+    this._readmeButton.mouseClicked(() => {
+      this._readmeAction();
+    });
+    this._readmeButton.parent(this._toolbar);
 
     this._minimizeButton = this._p5.createButton('X');
     this._minimizeButton.mouseOver(() => this.mouseInMinimizeButton = true);
@@ -33,6 +42,10 @@ class FloatingWindow {
     this._footer = this._p5.createElement('div');
     this._footer.class('tooltip--footer');
     this._footer.parent(this._elem);
+  }
+
+  setReadmeAction (action) {
+    this._readmeAction = action;
   }
 
   get elem () {
@@ -80,5 +93,13 @@ class FloatingWindow {
     this._title.html(title);
     this._description.html(description);
     this._footer.html(footer);
+  }
+
+  get contentElems () {
+    return {
+      title: this._title,
+      description: this._description,
+      footer: this._footer,
+    }
   }
 }
