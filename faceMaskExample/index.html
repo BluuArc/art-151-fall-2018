@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>ART 151 Spring 2018: Face Mask Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+  </style>
+  <!-- <script src="https://www.auduno.com/clmtrackr/build/clmtrackr.min.js"></script> -->
+  <script src="./clmtrackr.min.js"></script>
+  <script src="../p5-loader.js"></script>
+  <script src="sketch.js"></script>
+</head>
+<body>
+  <script>
+    let app;
+    p5Loader.loadP5()
+      .then(p5Loader.loadP5Dom)
+      .then(() => {
+        console.debug('p5 loaded');
+        app = new p5(App);
+      });
+  </script>
+</body>
+</html>
