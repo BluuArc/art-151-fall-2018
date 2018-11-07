@@ -5,13 +5,19 @@ class SpaceShooter {
     this._canvas.height = height;
     // this._canvas.style.display = 'none';
 
-    this._canvasOptions = {
+    const canvasOptions = {
       uiOffset: 20,
-      showHitBoxes,
+      showHitBoxes: false,
       backgroundColor: 'black',
     };
+    this._canvasOptions = canvasOptions;
 
-    this._gameState = {
+    const gameActions = {
+      pause: () => this.pause(),
+      restart: () => this.restart(),
+    };
+
+    const gameState = {
       score: 0,
       lives: 2, // remaining
       player: {
@@ -38,20 +44,33 @@ class SpaceShooter {
       allies: [],
       keysPressed: {
         left: false,
-        right: false,
+        right: false, 
         up: false,
-        pause: false,
-        restart: false,
-        toggleHitbox: false,
         speedUpTurn: false,
+        set pause (newValue) {
+          if (newValue) {
+            gameActions.pause();
+          }
+        },
+        set restart (newValue) {
+          if (newValue && !gameState.isPlaying) {
+            gameActions.restart(gameState.lives < 0);
+          }
+        },
+        set toggleHitbox (newValue) {
+          if (newValue) {
+            canvasOptions.showHitBoxes = !canvasOptions.showHitBoxes;
+          }
+        },
       },
-      isPlaying: false,
+      isPlaying: true,
       isPaused: false,
       doAutoLoop: !!doAutoLoop, // defines whether to play on its own or have something else control when to draw
       lastEnemyAdd: 0,
       maxAllies: parseInt(Math.random() * 10 + 1),
       maxEnemies: parseInt(Math.random() * 5 + 1),
     };
+    this._gameState = gameState;
 
     this._assetsContainer = document.getElementById('assets');
     this._assetConfig = {
@@ -71,9 +90,15 @@ class SpaceShooter {
     // keyboard listeners
     if (doAutoLoop) {
       const body = document.body;
-      body.onkeydown((e) => {
-        // TODO
-      })
+      body.onkeyup = e => {
+        if (e.key === 'r' || e.key === ' ') {
+          this._gameState.keysPressed.restart = true;
+        } else if (e.key === 'h') {
+          this._gameState.keysPressed.toggleHitbox = true;
+        } else if (e.key === 'p') {
+          this._gameState.keysPressed.pause = true;
+        }
+      };
     }
   }
 
@@ -162,10 +187,10 @@ class SpaceShooter {
     this._createFrames(enemyFrames, 14, 15, 'enemy');
     this._assetConfig.enemy.names = Object.keys(enemyFrames);
 
-    this._createFrames(lifeSprite, 14, 15, 'life');
+    this._createFrames(lifeSprite, 8, 8, 'life');
     this._assetConfig.life.names = Object.keys(lifeSprite);
 
-    this._createFrames(scoreSprite, 14, 15, 'scoreDrop');
+    this._createFrames(scoreSprite, 8, 6, 'scoreDrop');
     this._assetConfig.scoreDrop.names = Object.keys(scoreSprite);
   }
 
@@ -230,6 +255,7 @@ class SpaceShooter {
     }
 
     // draw
+    console.debug('drawing player');
     context.drawImage(sprite, position.x, position.y);
 
     // update counters
@@ -249,15 +275,45 @@ class SpaceShooter {
       const { canvas, context } = this.canvasAndContext;
 
       context.fillStyle = 'blue';
-      context.font = "75px bold Arial";
-      context.textAlign = "center";
-      context.fillText("GAME PAUSED", canvas.width / 2, canvas.height / 2);
+      context.font = '75px bold Arial';
+      context.textAlign = 'center';
+      context.fillText('GAME PAUSED', canvas.width / 2, canvas.height / 2);
 
-      context.font = "30px bold Arial";
-      context.fillText("Press unpause button (default 'p')", canvas.width / 2, canvas.height / 2 + 30);
+      context.font = '30px bold Arial';
+      context.fillText('Press p to unpause', canvas.width / 2, canvas.height / 2 + 30);
+      if (this._raf) {
+        cancelAnimationFrame(this._raf);
+      }
     } else if (this._gameState.doAutoLoop) {
       this._raf = requestAnimationFrame(() => this.draw());
     }
+  }
+
+  restart (fullRestart = false) {
+    if (fullRestart) {
+      this._gameState.lives = 2;
+      this._gameState.score = 0;
+    }
+
+    this._gameState.enemies = [];
+    this._gameState.allies = [];
+    this._gameState.starLocations = [];
+    this._gameState.isPaused = false;
+    this._gameState.lastEnemyAdd = 0;
+
+    this._gameState.player.position.x = this.canvas.width / 2;
+    this._gameState.player.speed.x = 0;
+    this._gameState.maxEnemies = parseInt(Math.random() * 5 + 1);
+    this._gameState.maxAllies = parseInt(Math.random() * 5 + 1);
+
+    this._gameState.isPlaying = false;
+    if (this._raf) {
+      cancelAnimationFrame(this._raf);
+      this._raf = null;
+    }
+
+    this._gameState.isPlaying = true;
+    this.draw();
   }
 
   draw () {
@@ -281,6 +337,10 @@ class SpaceShooter {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     this._drawBackground();
+
+    if (this._gameState.doAutoLoop && !this._gameState.isPaused) {
+      this._raf = requestAnimationFrame(() => this.draw());
+    }
   }
 
   _drawBackground () {
@@ -292,6 +352,7 @@ class SpaceShooter {
     if (this._gameState.starLocations.length < Math.max(this._gameState.maxAllies, this._gameState.maxEnemies) * 2 &&
       Math.random() < 0.1) {
         this._gameState.starLocations.push([Math.random() * canvas.width, 0]);
+        // console.debug(this._gameState.starLocations, canvas.height);
     }
 
     // filter, draw, and update locations
@@ -300,7 +361,7 @@ class SpaceShooter {
     starGradient.addColorStop(0, 'black');
     starGradient.addColorStop(1, 'white');
     context.fillStyle = starGradient;
-    this._gameState.starLocations.map(([x, y]) => {
+    this._gameState.starLocations = this._gameState.starLocations.map(([x, y]) => {
       // draw and update position
       context.fillRect(x, y, 5, this._gameState.keysPressed.up ? 20 : 10);
       return (y >= canvas.height) ? ([Math.random() * canvas.width, 0]) : [x, y + (this._gameState.keysPressed.up ? 10 : 7)];
