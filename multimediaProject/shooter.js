@@ -90,13 +90,29 @@ class SpaceShooter {
     // keyboard listeners
     if (doAutoLoop) {
       const body = document.body;
+      const { keysPressed } = this._gameState;
+      body.onkeydown = e => {
+        if (e.key === 'ArrowUp') {
+          keysPressed.up = true;
+        } else if (e.key === 'ArrowLeft') {
+          keysPressed.left = true;
+        } else if (e.key === 'ArrowRight') {
+          keysPressed.right = true;
+        }
+      };
       body.onkeyup = e => {
         if (e.key === 'r' || e.key === ' ') {
-          this._gameState.keysPressed.restart = true;
+          keysPressed.restart = true;
         } else if (e.key === 'h') {
-          this._gameState.keysPressed.toggleHitbox = true;
+          keysPressed.toggleHitbox = true;
         } else if (e.key === 'p') {
-          this._gameState.keysPressed.pause = true;
+          keysPressed.pause = true;
+        } else if (e.key === 'ArrowUp') {
+          keysPressed.up = false;
+        } else if (e.key === 'ArrowLeft') {
+          keysPressed.left = false;
+        } else if (e.key === 'ArrowRight') {
+          keysPressed.right = false;
         }
       };
     }
@@ -214,9 +230,9 @@ class SpaceShooter {
     const max = player.speed.max * (keysPressed.speedUpTurn ? 1.5 : 1);
 
     if (keysPressed.left) {
-      player.speed -= keysPressed.speedUpTurn ? 4 : 2;
+      player.speed.x -= keysPressed.speedUpTurn ? 4 : 2;
     } else if (keysPressed.right) {
-      player.speed += keysPressed.speedUpTurn ? 4 : 2;
+      player.speed.x += keysPressed.speedUpTurn ? 4 : 2;
     } else { // decelerate
       if (player.speed.x < 0) {
         player.speed.x += 1;
@@ -248,14 +264,16 @@ class SpaceShooter {
 
     // update position
     position.x += speed.x;
+
+    // reached left/right edge, so teleport to other side
     if (position.x < 0) {
-      position.x = 0;
-    } else if (position.x + frame.size.x * 1.5 > canvas.width) {
       position.x = canvas.width - frame.size.x * 1.5;
+    } else if (position.x + frame.size.x * 1.5 > canvas.width) {
+      position.x = 0;
     }
 
     // draw
-    console.debug('drawing player');
+    // console.debug('drawing player', position.x, position.y);
     context.drawImage(sprite, position.x, position.y);
 
     // update counters
@@ -338,6 +356,12 @@ class SpaceShooter {
 
     this._drawBackground();
 
+    this._drawGameEntities();
+
+    this._drawGameUi();
+
+    this._randomlyGenerateEnemyAndAlly();
+
     if (this._gameState.doAutoLoop && !this._gameState.isPaused) {
       this._raf = requestAnimationFrame(() => this.draw());
     }
@@ -366,5 +390,246 @@ class SpaceShooter {
       context.fillRect(x, y, 5, this._gameState.keysPressed.up ? 20 : 10);
       return (y >= canvas.height) ? ([Math.random() * canvas.width, 0]) : [x, y + (this._gameState.keysPressed.up ? 10 : 7)];
     });
+  }
+
+  _drawGameEntities () {
+    this._movePlayer();
+    this._drawPlayer();
+
+    this._gameState.enemies.forEach(enemy => {
+      this._moveEnemy(enemy);
+      this._drawEnemy(enemy);
+    })
+
+    this._gameState.allies.forEach(scoreDrop => {
+      this._moveScoreDrop(scoreDrop);
+      this._drawScoreDrop(scoreDrop);
+    });
+  }
+
+  _drawGameUi () {
+    const { canvas, context } = this.canvasAndContext;
+    const textY = this._canvasOptions.uiOffset * 0.6;
+    context.textAlign = 'start';
+
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, this._canvasOptions.uiOffset);
+
+    context.font = "15px bold Consolas";
+    context.fillStyle = 'white';
+    context.fillText("Score: " + this._gameState.score, 5, textY);
+
+    context.fillText("Remaining Lives:", canvas.width - 165, textY);
+
+    // draw lives
+    let startX = canvas.width - 50;
+    const startY = 0;
+    for (let i = 0; i < this._gameState.lives; ++i) {
+      context.drawImage(this.getAsset('life', 'life', 0), startX, startY);
+      startX += 25;
+    }
+  }
+
+  _randomlyGenerateEnemyAndAlly () {
+    if (
+      (this._gameState.enemies.length < this._gameState.maxEnemies && Math.random() < 0.1) ||
+      (this._gameState.lastEnemyAdd > 1000 && Math.random() < 0.05)
+    ) {
+      this.addEnemy();
+      this._gameState.lastEnemyAdd = 0;
+    } else {
+      this._gameState.lastEnemyAdd++;
+    }
+
+    if (
+      (this._gameState.allies.length < this._gameState.maxAllies && Math.random() < 0.1) ||
+      (this._gameState.lastEnemyAdd > 1000 && Math.random() < 0.05)
+    ) {
+      this.addScoreDrop();
+      this._gameState.lastEnemyAdd = 0;
+    } else {
+      this._gameState.lastEnemyAdd++;
+    }
+  }
+
+  addEnemy () {
+    const enemy = {
+      speed: {
+        x: 1,
+        y: 5,
+        max: parseInt(Math.random() * 10 + 5),
+        min: parseInt(Math.random() * 5 + 3),
+        isMovingRight: false,
+        isWaiting: false,
+      },
+      frame: {
+        current: 0,
+        sinceUpdate: 0,
+        number: 1,
+        sinceUpdateMax: 30,
+        size: { //mult by 2 since canvas copy was scaled
+          x: 14 * 2,
+          y: 15 * 2
+        },
+      },
+      position: {
+        x: parseInt(Math.random() * this.canvas.width),
+        y: 0,
+      },
+    };
+    this._gameState.enemies.push(enemy);
+  }
+
+  _moveEnemy (enemy = {}) {
+    const { speed, frame } = enemy;
+    const { min, max } = speed;
+    const { keysPressed } = this._gameState;
+
+    if (keysPressed.up) {
+      speed.y += keysPressed.speedUpTurn ? 4 : 2;
+    } else { // decelerate
+      speed.y = Math.max(speed.y - 1, min);
+    }
+
+    // move in a zig-zag motion
+    if (speed.x > max) {
+      speed.x = max - 1;
+      speed.isMovingRight = false;
+      speed.isWaiting = true;
+      frame.sinceUpdateMax = Math.ceil(Math.random() * 51);
+    } else if (speed.x < -max) {
+      speed.x = -max + 1;
+      speed.isMovingRight = true;
+      speed.isWaiting = true;
+      frame.sinceUpdateMax = Math.ceil(Math.random() * 51);
+    } else if (speed.x === 0 && speed.isWaiting) {
+      // wait a number of frames before moving
+      if (frame.sinceUpdate > frame.sinceUpdateMax) {
+        frame.sinceUpdate = 0;
+        speed.isWaiting = false;
+      }
+    } else {
+      speed.x = Math.round(speed.x) + (speed.isMovingRight ? 1 : -1);
+    }
+
+    // bounds check
+    speed.y = Math.min(Math.max(speed.y, min), max);
+  }
+
+  _drawEnemy (enemy = {}) {
+    const { speed, position, frame } = enemy;
+    const { canvas, context } = this.canvasAndContext;
+    let assetLabel;
+    if (speed.x === 0) {
+      assetLabel = 'idle';
+    } else if (speed.x > 0) {
+      assetLabel = speed.x < speed.max / 2  ? 'turn1R' : 'turn2R';
+    } else {
+      assetLabel = speed.x < -speed.max / 2 ? 'turn1L' : 'turn2L';
+    }
+    const sprite = this.getAsset('enemy', assetLabel, frame.current);
+
+    // update position
+    position.x += speed.x;
+    position.y += speed.y;
+
+    // reached left/right edge, so teleport to other side
+    if (position.x < 0) {
+      position.x = canvas.width - frame.size.x * 1.5;
+    } else if (position.x + frame.size.x * 1.5 > canvas.width) {
+      position.x = 0;
+    }
+
+    // reached bottom, so start at top
+    if (position.y > canvas.height - frame.size.y) {
+      position.y = -frame.size.y * Math.round(Math.random() * 5 + 1);
+      position.x = Math.round(Math.random() * canvas.width);
+      speed.max = Math.round(Math.random() * 20 + 5);
+    }
+
+    // draw
+    context.drawImage(sprite, position.x, position.y);
+
+    // update counters
+    frame.current++;
+    frame.sinceUpdate++;
+    if (frame.current >= frame.number) {
+      frame.current = 0;
+    }
+  }
+
+  addScoreDrop () {
+    const scoreDrop = {
+      speed: {
+        x: 0,
+        y: 2,
+        max: 10,
+        min: 5,
+      },
+      frame: {
+        current: 0,
+        sinceUpdate: 0,
+        number: 1,
+        sinceUpdateMax: 30,
+        size: { //mult by 2 since canvas copy was scaled
+          x: 8 * 2,
+          y: 6 * 2
+        },
+      },
+      position: {
+        x: parseInt(Math.random() * this.canvas.width),
+        y: 0,
+      },
+      isActive: true,
+    };
+    this._gameState.allies.push(scoreDrop);
+  }
+
+  _moveScoreDrop (scoreDrop = {}) {
+    const { speed } = scoreDrop;
+    const { max, min } = speed;
+    const { keysPressed } = this._gameState;
+
+    if (keysPressed.up) {
+      speed.y += keysPressed.speedUpTurn ? 4 : 2;
+    } else { // decelerate
+      speed.y = Math.max(speed.y - 1, min);
+    }
+
+    // bounds check
+    speed.y = Math.min(Math.max(speed.y, min), max);
+  }
+
+  _drawScoreDrop (enemy = {}) {
+    const { speed, position, frame } = enemy;
+    const { canvas, context } = this.canvasAndContext;
+    const sprite = this.getAsset('scoreDrop', 'drop10', frame.current);
+
+    // update position
+    position.x += speed.x;
+    position.y += speed.y;
+
+    // reached left/right edge, so teleport to other side
+    if (position.x < 0) {
+      position.x = canvas.width - frame.size.x * 1.5;
+    } else if (position.x + frame.size.x * 1.5 > canvas.width) {
+      position.x = 0;
+    }
+
+    // reached bottom, so start at top
+    if (position.y > canvas.height - frame.size.y) {
+      position.y = -frame.size.y * 2;
+      position.x = Math.round(Math.random() * canvas.width);
+    }
+
+    // draw
+    context.drawImage(sprite, position.x, position.y);
+
+    // update counters
+    frame.current++;
+    frame.sinceUpdate++;
+    if (frame.current >= frame.number) {
+      frame.current = 0;
+    }
   }
 }
