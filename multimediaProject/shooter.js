@@ -69,6 +69,7 @@ class SpaceShooter {
       lastEnemyAdd: 0,
       maxAllies: parseInt(Math.random() * 10 + 1),
       maxEnemies: parseInt(Math.random() * 5 + 1),
+      waitingForReset: false,
     };
     this._gameState = gameState;
 
@@ -88,9 +89,14 @@ class SpaceShooter {
     this._initializeSprites();
 
     // keyboard listeners
-    if (doAutoLoop) {
-      const body = document.body;
-      const { keysPressed } = this._gameState;
+    this._initializeKeyboardListeners();
+  }
+
+  _initializeKeyboardListeners () {
+    const body = document.body;
+    const { keysPressed } = this._gameState;
+
+    if (this._gameState.doAutoLoop) {
       body.onkeydown = e => {
         if (e.key === 'ArrowUp') {
           keysPressed.up = true;
@@ -100,22 +106,25 @@ class SpaceShooter {
           keysPressed.right = true;
         }
       };
-      body.onkeyup = e => {
-        if (e.key === 'r' || e.key === ' ') {
-          keysPressed.restart = true;
-        } else if (e.key === 'h') {
-          keysPressed.toggleHitbox = true;
-        } else if (e.key === 'p') {
-          keysPressed.pause = true;
-        } else if (e.key === 'ArrowUp') {
+    }
+    
+    body.onkeyup = e => {
+      if (e.key === 'r' || e.key === ' ') {
+        keysPressed.restart = true;
+      } else if (e.key === 'h') {
+        keysPressed.toggleHitbox = true;
+      } else if (e.key === 'p') {
+        keysPressed.pause = true;
+      } else if (this._gameState.doAutoLoop) {
+        if (e.key === 'ArrowUp') {
           keysPressed.up = false;
         } else if (e.key === 'ArrowLeft') {
           keysPressed.left = false;
         } else if (e.key === 'ArrowRight') {
           keysPressed.right = false;
         }
-      };
-    }
+      }
+    };
   }
 
   getAsset (type, name, frameNumber) {
@@ -330,6 +339,7 @@ class SpaceShooter {
       this._raf = null;
     }
 
+    this._gameState.waitingForReset = false;
     this._gameState.isPlaying = true;
     this.draw();
   }
@@ -337,8 +347,10 @@ class SpaceShooter {
   draw () {
     const { canvas, context } = this.canvasAndContext;
 
-    // game over
-    if (!this._gameState.isPlaying) {
+    if (this._gameState.waitingForReset || this._gameState.isPaused) {
+      return;
+    } else if (!this._gameState.isPlaying) {
+      // game over
       this._gameState.lives--;
       if (this._gameState.lives < 0) {
         context.fillStyle = 'red';
@@ -349,6 +361,7 @@ class SpaceShooter {
         context.font = "30px bold Arial";
         context.fillText("Press 'r' to restart", canvas.width / 2, canvas.height / 2 + 30);
       }
+      this._gameState.waitingForReset = true;
       return;
     }
 
@@ -685,5 +698,14 @@ class SpaceShooter {
     const topCollide = (e1Bounds.y[0] > e2Bounds.y[0] && e1Bounds.y[0] < e2Bounds.y[1]);
     const bottomCollide = (e1Bounds.y[1] > e2Bounds.y[0] && e1Bounds.y[1] < e2Bounds.y[1]);
     return (leftCollide || rightCollide) && (topCollide || bottomCollide);
+  }
+
+  toggleKey (key, value) {
+    const { keysPressed } = this._gameState;
+    if (keysPressed[key] === undefined) {
+      throw Error(`Unknown key pressed "${key}"`);
+    }
+
+    keysPressed[key] = (value !== undefined) ? !!value : !keysPressed[key];
   }
 }

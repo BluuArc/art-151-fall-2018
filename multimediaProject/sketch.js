@@ -11,10 +11,12 @@ function App (_p5) {
   };
   let poseNet;
   let poseData;
+  const shooterGame = new SpaceShooter(captureDimensions.width, captureDimensions.height, false);
+  window.shooterGame = shooterGame;
   
 
   _p5.preload = async () => {
-    poseNet = await posenet.load(0.5);
+    // poseNet = await posenet.load(0.5);
   };
 
   _p5.setup = () => {
@@ -61,6 +63,9 @@ function App (_p5) {
     _p5.scale(-1, 1);
     _p5.image(uiElements.capture, 0, 0, captureDimensions.width, captureDimensions.height);
     _p5.pop();
+
+    shooterGame.draw();
+    uiElements.canvas.elt.getContext('2d').drawImage(shooterGame.canvas, captureDimensions.width, 0, captureDimensions.width, captureDimensions.height);
 
     if (poseData) {
       _p5.fill(255);
