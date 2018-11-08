@@ -14,7 +14,53 @@ function App (_p5) {
   const shooterGame = new SpaceShooter(captureDimensions.width, captureDimensions.height, false);
   window.shooterGame = shooterGame;
   let streamLoaded = false;
-  
+
+  function getVideoStream (videoConstraints) {
+    // from: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+    // Older browsers might not implement mediaDevices at all, so we set an empty object first
+    if (navigator.mediaDevices === undefined) {
+      navigator.mediaDevices = {};
+    }
+
+    // Some browsers partially implement mediaDevices. We can't just assign an object
+    // with getUserMedia as it would overwrite existing properties.
+    // Here, we will just add the getUserMedia property if it's missing.
+    if (navigator.mediaDevices.getUserMedia === undefined) {
+      navigator.mediaDevices.getUserMedia = function (constraints) {
+
+        // First get ahold of the legacy getUserMedia, if present
+        var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+        // Some browsers just don't implement it - return a rejected promise with an error
+        // to keep a consistent interface
+        if (!getUserMedia) {
+          return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+        }
+
+        // Otherwise, wrap the call to the old navigator.getUserMedia with a Promise
+        return new Promise(function (resolve, reject) {
+          getUserMedia.call(navigator, constraints, resolve, reject);
+        });
+      }
+    }
+
+    return new Promise((fulfill, reject) => {
+      let isResolved = false;
+
+      const timeout = setTimeout(() => {
+        if (!isResolved) {
+          reject(new Error('Took too long to get stream (> 30s)'));
+        }
+      }, 30 * 1000);
+
+      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        isResolved = true;
+        clearTimeout(timeout);
+        fulfill(stream);
+      }).catch(reject);
+    });
+  }
+  window.getVideoStream = getVideoStream;
 
   _p5.preload = async () => {
     poseNet = await posenet.load(0.5);
@@ -23,6 +69,29 @@ function App (_p5) {
   _p5.setup = () => {
     console.debug('entered setup');
     uiElements.canvas = _p5.createCanvas(captureDimensions.width * 2, captureDimensions.height);
+    // getVideoStream({
+    //   video: {
+    //     width: captureDimensions.width,
+    //     height: captureDimensions.height,
+    //   },
+    //   audio: false,
+    // }).then(stream => {
+    //   const video = _p5.createElement('video');
+    //   if ('srcObject' in video.elt) {
+    //     video.elt.srcObject = stream;
+    //   } else {
+    //     // Avoid using this in new browsers, as it is going away.
+    //     video.elt.src = window.URL.createObjectURL(stream);
+    //   }
+    //   video.elt.width = captureDimensions.width;
+    //   video.elt.height = captureDimensions.height;
+    //   video.elt.onloadedmetadata = () => {
+    //     video.elt.play();
+    //   };
+    //   streamLoaded = true;
+    //   uiElements.capture = video;
+    //   uiElements.capture.hide();
+    // });
     uiElements.capture = _p5.createCapture({
       video: {
         mandatory: {
@@ -35,6 +104,8 @@ function App (_p5) {
       console.debug('stream loaded', stream);
       streamLoaded = true;
     });
+    uiElements.capture.elt.width = captureDimensions.width;
+    uiElements.capture.elt.height = captureDimensions.height;
     uiElements.capture.hide();
     _p5.frameRate(30);
   };
@@ -117,13 +188,13 @@ function App (_p5) {
     _p5.translate(captureDimensions.width, 0);
     _p5.scale(-1, 1);
     _p5.image(uiElements.capture, 0, 0, captureDimensions.width, captureDimensions.height);
+    // uiElements.canvas.elt.getContext('2d').drawImage(uiElements.capture.elt, 0, 0, captureDimensions.width, captureDimensions.height);
     _p5.pop();
 
     // draw game
     shooterGame.draw();
     uiElements.canvas.elt.getContext('2d').drawImage(shooterGame.canvas, captureDimensions.width, 0, captureDimensions.width, captureDimensions.height);
 
-    
     if (!shooterGame.isPaused && !shooterGame.isWaitingForReset) {
       throttledUpdatePoseData();
       // draw pose data
