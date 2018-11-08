@@ -708,4 +708,12 @@ class SpaceShooter {
 
     keysPressed[key] = (value !== undefined) ? !!value : !keysPressed[key];
   }
+
+  get isPaused () {
+    return this._gameState.isPaused;
+  }
+
+  get isWaitingForReset () {
+    return this._gameState.waitingForReset;
+  }
 }

@@ -55,16 +55,27 @@ function App (_p5) {
     };
     // console.debug(result, poseData);
 
-    const { degAngle } = pointsToPolarVector(
+    const convertedVector = pointsToPolarVector(
       [poseData.rightPoint.position.x, poseData.rightPoint.position.y],
       [poseData.leftPoint.position.x, poseData.leftPoint.position.y],
       false,
     );
-    console.debug(-degAngle);
+    const turningAngle = Math.floor(convertedVector.degAngle);
+    console.debug(turningAngle);
+
+    if (Math.abs(turningAngle) <= 3) {
+      shooterGame.toggleKey('left', false);
+      shooterGame.toggleKey('right', false);
+      shooterGame.toggleKey('speedUpTurn', false);
+    } else {
+      shooterGame.toggleKey('left', turningAngle < 0);
+      shooterGame.toggleKey('right', turningAngle > 0);
+      shooterGame.toggleKey('speedUpTurn', Math.abs(turningAngle) >= 15);
+    }
   }
   window.updatePoseData = updatePoseData;
 
-  const throttledUpdatePoseData = _.throttle(updatePoseData, 500);
+  const throttledUpdatePoseData = _.throttle(updatePoseData, 250);
 
   // from owmVisProject: https://github.com/BluuArc/castor-art-151-fall-2018/tree/master/owmVisProject
   function pointsToPolarVector (point1 = [], point2 = [], flipQuadrants = false) {
@@ -93,6 +104,12 @@ function App (_p5) {
       _p5.textSize(30);
       _p5.text('Waiting for stream to load', _p5.width / 2, _p5.height / 2);
       return;
+    } else if (!poseData) {
+      throttledUpdatePoseData();
+      _p5.fill(255);
+      _p5.textSize(30);
+      _p5.text('Waiting for pose data to load', _p5.width / 2, _p5.height / 2);
+      return;
     }
 
     // draw capture
@@ -106,17 +123,20 @@ function App (_p5) {
     shooterGame.draw();
     uiElements.canvas.elt.getContext('2d').drawImage(shooterGame.canvas, captureDimensions.width, 0, captureDimensions.width, captureDimensions.height);
 
-    // draw pose data
-    if (poseData) {
-      _p5.fill(255);
-      _p5.stroke(255);
-      _p5.ellipse(poseData.leftPoint.position.x, poseData.leftPoint.position.y, 50, 50);
-      _p5.ellipse(poseData.rightPoint.position.x, poseData.rightPoint.position.y, 50, 50);
-      _p5.line(
-        poseData.leftPoint.position.x, poseData.leftPoint.position.y,
-        poseData.rightPoint.position.x, poseData.rightPoint.position.y,
-      );
+    
+    if (!shooterGame.isPaused && !shooterGame.isWaitingForReset) {
+      throttledUpdatePoseData();
+      // draw pose data
+      if (poseData) {
+        _p5.fill(255);
+        _p5.stroke(255);
+        _p5.ellipse(poseData.leftPoint.position.x, poseData.leftPoint.position.y, 50, 50);
+        _p5.ellipse(poseData.rightPoint.position.x, poseData.rightPoint.position.y, 50, 50);
+        _p5.line(
+          poseData.leftPoint.position.x, poseData.leftPoint.position.y,
+          poseData.rightPoint.position.x, poseData.rightPoint.position.y,
+        );
+      }
     }
-    throttledUpdatePoseData();
   };
 }
