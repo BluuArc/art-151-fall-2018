@@ -362,6 +362,22 @@ class SpaceShooter {
 
     this._randomlyGenerateEnemyAndAlly();
 
+    const hasEnemyCollision = this._checkCollisions();
+
+    if (hasEnemyCollision) {
+      this._gameState.isPlaying = false;
+
+      if (this._gameState.lives > 0) {
+        context.fillStyle = 'red';
+        context.font = "30px bold Arial";
+        context.textAlign = "center";
+        context.fillText("You hit another ship!", canvas.width / 2, canvas.height / 2);
+
+        context.font = "20px bold Arial";
+        context.fillText("Press Space to continue", canvas.width / 2, canvas.height / 2 + 30);
+      }
+    }
+
     if (this._gameState.doAutoLoop && !this._gameState.isPaused) {
       this._raf = requestAnimationFrame(() => this.draw());
     }
@@ -631,5 +647,43 @@ class SpaceShooter {
     if (frame.current >= frame.number) {
       frame.current = 0;
     }
+  }
+
+  _checkCollisions () {
+    const hasEnemyCollision = this._gameState.enemies.some(enemy => this._isColliding(this._gameState.player, enemy));
+
+    this._gameState.allies = this._gameState.allies.filter(scoreDrop => {
+      const isColliding = this._isColliding(this._gameState.player, scoreDrop);
+      if (isColliding) {
+        this._gameState.score += 10;
+      }
+      return !isColliding;
+    });
+    return hasEnemyCollision;
+  }
+
+  _isColliding (e1, e2) {
+    const e1Bounds = {
+      x: [e1.position.x, e1.position.x + e1.frame.size.x],
+      y: [e1.position.y, e1.position.y + e1.frame.size.y],
+    };
+    const e2Bounds = {
+      x: [e2.position.x, e2.position.x + e2.frame.size.x],
+      y: [e2.position.y, e2.position.y + e2.frame.size.y],
+    };
+
+    if (this._canvasOptions.showHitBoxes) {
+      const context = this.canvasContext;
+      context.strokeStyle = ' white';
+      context.strokeRect(e1Bounds.x[0], e1Bounds.y[0], e1.frame.size.x, e2.frame.size.y);
+      context.strokeRect(e2Bounds.x[0], e2Bounds.y[0], e2.frame.size.x, e2.frame.size.y);
+    }
+
+    //check if any edge of e1 is within range of bounds for e2
+    const leftCollide = (e1Bounds.x[0] > e2Bounds.x[0] && e1Bounds.x[0] < e2Bounds.x[1]);
+    const rightCollide = (e1Bounds.x[1] > e2Bounds.x[0] && e1Bounds.x[1] < e2Bounds.x[1]);
+    const topCollide = (e1Bounds.y[0] > e2Bounds.y[0] && e1Bounds.y[0] < e2Bounds.y[1]);
+    const bottomCollide = (e1Bounds.y[1] > e2Bounds.y[0] && e1Bounds.y[1] < e2Bounds.y[1]);
+    return (leftCollide || rightCollide) && (topCollide || bottomCollide);
   }
 }
