@@ -15,6 +15,11 @@
     "desc": "Starting from the class example of using arrays, I created a small app that makes bubbles move toward the mouse on click. This is also an example of using the instance mode for p5.js."
   },
   {
+    "path": "faceMaskExample",
+    "name": "Class Example for using P5 for applying a face mask",
+    "desc": "Using p5 to apply a face mask."
+  },
+  {
     "path": "jsonArrayClassExample",
     "name": "JSON Arrays Demo - Class Example",
     "desc": "Use p5 to load and use JSON data with arrays."
@@ -23,6 +28,11 @@
     "path": "jsonDemoClassExample",
     "name": "JSON Demo - Class Example",
     "desc": "Use p5 to load and use JSON data."
+  },
+  {
+    "path": "multimediaProject",
+    "name": "Processing Multimedia Project",
+    "desc": "Use a webcam as a controller for a game."
   },
   {
     "path": "narrativeClassExample",
@@ -48,6 +58,16 @@
     "path": "p5DomClassExample",
     "name": "Class Example for using P5 DOM Library",
     "desc": "Small example of using the p5 DOM library This is also an example of using p5 loader for loading p5 and its libraries."
+  },
+  {
+    "path": "seriouslyJsExample",
+    "name": "Class Example for using P5 and Seriously.js",
+    "desc": "Using p5 with Seriously.js."
+  },
+  {
+    "path": "slitScanExample",
+    "name": "Class Example for using P5 for slit scan",
+    "desc": "Using P5 for a slit scan effect"
   },
   {
     "path": "webNarrativeProject",
