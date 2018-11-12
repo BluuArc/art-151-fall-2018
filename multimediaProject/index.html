@@ -9,26 +9,42 @@
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
+      background: black;
+      color: white;
     }
 
     #assets { 
       display: none;
     }
+
+    #canvas-container {
+      text-align: center;
+    }
+
+    #readme {
+      margin: auto;
+    }
   </style>
   <script src="https://unpkg.com/@tensorflow/tfjs"></script>
   <script src="https://unpkg.com/@tensorflow-models/posenet"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./shooter.js"></script>
   
   <script src="../p5-loader.js"></script>
   <script src="sketch.js"></script>
 
-  <script src="./shooter.js"></script>
 </head>
 <body>
   <div id="assets">
     <!-- sprite sheet source: https://jonathan-so.itch.io/creatorpack -->
     <img src="./Shooter_SpriteSheet.png" id="mainSheet">
+  </div>
+  <div id="canvas-container">
+
+  </div>
+  <div id="readme">
+    Test
   </div>
   <script>
     let app;
