@@ -9,6 +9,8 @@ This is a variant of [Project 4 of my IT202 project from Fall 2017](https://josh
 
 ## Other
 * Libraries Used
-  * [PoseNet](https://github.com/tensorflow/tfjs-models/tree/master/posenet)
+  * [PoseNet](https://github.com/tensorflow/tfjs-models/tree/master/posenet) (which relies on [TensorFlow.js](https://github.com/tensorflow/tfjs))
+  * [lodash](https://lodash.com/) for throttling calls to PoseNet
+  * [Marked](https://github.com/markedjs/marked) for compiling the readme file into HTML on-the-fly
 * Assets Used
-  * Spritesheet from [Jonathan So](https://jonathan-so.itch.io/creatorpack)
+  * Game Spritesheet from [Jonathan So](https://jonathan-so.itch.io/creatorpack)

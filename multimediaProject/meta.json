@@ -1,4 +1,4 @@
 {
   "name": "Processing Multimedia Project",
-  "desc": "Use a webcam as a controller for a game."
+  "desc": "Using P5 and PoseNet, use a webcam as a controller for a game."
 }
